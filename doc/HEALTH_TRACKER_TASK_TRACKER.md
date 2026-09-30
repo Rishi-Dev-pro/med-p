@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 8 |
+| **Tasks Completed** | 10 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 38 |
-| **Overall Completion** | 17.4% |
+| **Tasks Not Started** | 36 |
+| **Overall Completion** | 21.7% |
 
 ---
 
@@ -43,10 +43,10 @@
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `TASK-0.1` | Create centralized system constants (Roles: `SUPER_ADMIN`, `DOCTOR`, `PATIENT`; Account status: `ACTIVE`, `SUSPENDED`; Device status: `ACTIVE`, `INACTIVE`; Audit actions) | `DONE` | None | `src/config/constants.js` | `node tests/schemaValidation.test.js` (Test 2 PASS) | 2026-09-30 | Enums frozen with Object.freeze |
-| `TASK-0.2` | Implement User schema with authentication credentials, bcrypt hooks, role enum, status enum, and sparse unique `profileId` | `DONE` | `TASK-0.1` | `src/models/User.js` | `node tests/schemaValidation.test.js` (Test 3, 9 PASS) | 2026-09-30 | Sparse unique index on profileId validated |
+| `TASK-0.2` | Implement User schema with authentication credentials, bcrypt hooks, role enum, status enum, and unique partial `profileId` index | `DONE` | `TASK-0.1` | `src/models/User.js` | `node tests/schemaValidation.test.js` (Test 3, 9 PASS) | 2026-09-30 | Unique partial index with partialFilterExpression validated |
 | `TASK-0.3` | Formalize Doctor schema (`doctorId` UK, `userId` UK ref User, `name`, `email` UK, `phone`, `specialization`, `status`) | `DONE` | `TASK-0.1`, `TASK-0.2` | `src/models/Doctor.js` | `node tests/schemaValidation.test.js` (Test 4 PASS) | 2026-09-30 | Replaced minimal prototype schema |
-| `TASK-0.4` | Formalize Patient schema (`patientId` UK, `userId` UK ref User, `name`, `email` UK, `age`, nullable `doctorId`, sparse unique `deviceId`) | `DONE` | `TASK-0.1`, `TASK-0.2` | `src/models/Patient.js` | `node tests/schemaValidation.test.js` (Test 5, 9 PASS) | 2026-09-30 | Unassigned doctorId & deviceId strictly null |
-| `TASK-0.5` | Formalize Device schema (`deviceId` UK, `status`, nullable sparse unique `patientId`, `apiKeyHash`, `resetCount`, nullable `lastSeen`) | `DONE` | `TASK-0.1` | `src/models/Device.js` | `node tests/schemaValidation.test.js` (Test 6, 9 PASS) | 2026-09-30 | Reset invariant & status normalizer validated |
+| `TASK-0.4` | Formalize Patient schema (`patientId` UK, `userId` UK ref User, `name`, `email` UK, `age`, nullable `doctorId`, unique partial `deviceId` index) | `DONE` | `TASK-0.1`, `TASK-0.2` | `src/models/Patient.js` | `node tests/schemaValidation.test.js` (Test 5, 9 PASS) | 2026-09-30 | Unassigned doctorId & deviceId strictly null; unique partial index |
+| `TASK-0.5` | Formalize Device schema (`deviceId` UK, `status`, nullable unique partial `patientId` index, `apiKeyHash`, `resetCount`, nullable `lastSeen`) | `DONE` | `TASK-0.1` | `src/models/Device.js` | `node tests/schemaValidation.test.js` (Test 6, 9 PASS) | 2026-09-30 | Reset invariant, status normalizer & unique partial index validated |
 | `TASK-0.6` | Formalize SensorReading schema (immutable telemetry: `deviceId`, `patientId`, nullable `doctorId`, `value1`, `value2`, `timestamp`; compound indexes) | `DONE` | `TASK-0.1` | `src/models/SensorReading.js` | `node tests/schemaValidation.test.js` (Test 7, 9 PASS) | 2026-09-30 | Compound indexes & nullable doctorId validated |
 | `TASK-0.7` | Implement ActivityLog schema (`action`, `actorRole`, `actorId`, `targetType`, `targetId`, `details`, `timestamp` with compound indexes) | `DONE` | `TASK-0.1` | `src/models/ActivityLog.js` | `node tests/schemaValidation.test.js` (Test 8, 9 PASS) | 2026-09-30 | Append-only audit collection with compound indexes |
 | `TASK-0.8` | Create offline schema verification script to test model instantiation, validation rules, enum rejections, and index constraints | `DONE` | `TASK-0.1` - `TASK-0.7` | `tests/schemaValidation.test.js` | `node tests/schemaValidation.test.js` (10/10 PASS) | 2026-09-30 | Comprehensive offline suite verified |
@@ -59,8 +59,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-1.1` | Create multi-device headless IoT simulator CLI script (`tests/iotSimulator.js`) supporting `--devices`, `--interval`, continuous stream, and graceful `SIGINT` | `NOT_STARTED` | Phase 0 | `tests/iotSimulator.js` | None (Not yet executed) | - | Replaces manual POST tests |
-| `TASK-1.2` | Update `/api/iot/data` to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate `doctorId = null` | `NOT_STARTED` | Phase 0 | `src/routes/iotRoutes.js` | None (Not yet executed) | - | Removes assumption that every patient must have a doctor |
+| `TASK-1.1` | Create multi-device headless IoT simulator CLI script (`tests/iotSimulator.js`) supporting `--devices`, `--interval`, continuous stream, and graceful `SIGINT` | `DONE` | Phase 0 | `tests/iotSimulator.js` | `node tests/iotSimulator.test.js` (10/10 PASS); manual CLI test (2 cycles PASS) | 2026-09-30 | Replaces manual POST tests; pure HTTP fetch |
+| `TASK-1.2` | Update `/api/iot/data` to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate `doctorId = null` | `DONE` | Phase 0 | `src/routes/iotRoutes.js` | `node tests/iotSimulator.test.js` (Tests 4, 5, 6, 7 PASS) | 2026-09-30 | 201 status code, null doctorId accommodated, socket decoupled from persistence |
 
 ---
 

@@ -5,6 +5,51 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-09-30 — Phase 1: IoT Automated Simulator
+- **Phase / Task:** PHASE 1 (`TASK-1.1`, `TASK-1.2`)
+- **Change:**
+  1. Created headless multi-device IoT telemetry simulator (`tests/iotSimulator.js`) with CLI flag parsing (`--devices`, `--interval`, `--url`, `--count`, `--help`), random-walk synthetic telemetry generation within safe bounds (value1: 55-105, value2: 92-100), ISO timestamping, real HTTP ingestion via `POST /api/iot/data`, robust connection error/timeout handling, and clean graceful shutdown on `SIGINT` / `SIGTERM`.
+  2. Updated IoT ingestion route (`src/routes/iotRoutes.js`):
+     - Return HTTP 201 Created on successful telemetry ingestion (conforming to Master Roadmap specification).
+     - Return HTTP 404 Not Found for unregistered devices.
+     - Return HTTP 403 Forbidden for inactive devices (`device.status !== 'ACTIVE'`).
+     - Accommodate unassigned patients (`patient.doctorId === null`) without error, recording `SensorReading.doctorId = null` and omitting doctor-room socket emission.
+     - Decouple database persistence from real-time Socket.IO emission with an `if (io)` guard so telemetry storage succeeds even if Socket.IO is uninitialized.
+  3. Created automated verification test suite (`tests/iotSimulator.test.js`) containing 10 tests across CLI parsing, synthetic telemetry range validation, HTTP ingestion status codes (201, 404, 403), server offline resilience, multi-device concurrent simulation, and graceful shutdown.
+- **Reason:**
+  Replace repetitive manual Thunder Client testing with an automated headless multi-device telemetry generator that exercises the real HTTP ingestion pipeline and validates Phase 0 schema compliance under real network conditions.
+- **Files Affected:**
+  - `tests/iotSimulator.js`
+  - `src/routes/iotRoutes.js`
+  - `tests/iotSimulator.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed.
+  - `node tests/iotSimulator.js --devices DEV-001,DEV-002 --interval 100 --count 2`: successfully handled offline backend and cleanly exited with code 0.
+
+### 2026-09-30 — Phase 0: Final Tracker Audit & Index Refinement
+- **Phase / Task:** PHASE 0 (`TASK-0.1` through `TASK-0.8`)
+- **Change:**
+  1. Audited all 8 Phase 0 tasks against current code and the Master Development Roadmap.
+  2. Applied official ROADMAP CHANGE 001: Upgraded `Patient.deviceId`, `Device.patientId`, and `User.profileId` unique indexes to unique partial indexes (`partialFilterExpression: { <field>: { $type: "string" } }`) so multiple unassigned entities storing `null` are permitted in MongoDB without duplicate key conflicts.
+  3. Applied official ROADMAP CHANGE 002: Updated roadmap status verification rules to use uppercase `'ACTIVE'` (or `DEVICE_STATUS.ACTIVE` / `DOCTOR_STATUS.ACTIVE`).
+  4. Executed Phase 0 schema verification suite (`tests/schemaValidation.test.js`): 10/10 passed offline.
+- **Reason:**
+  Ensure 100% adherence to MongoDB relational invariants and confirm full Phase 0 completion before any Phase 1 execution.
+- **Files Affected:**
+  - `doc/HEALTH_TRACKER_MASTER_ROADMAP.md`
+  - `src/models/User.js`
+  - `src/models/Patient.js`
+  - `src/models/Device.js`
+  - `tests/schemaValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed offline.
+
 ### 2026-09-30 — Phase 0: Architecture & Database Schema Freeze
 - **Phase / Task:** PHASE 0 (`TASK-0.1` through `TASK-0.8`)
 - **Change:**
