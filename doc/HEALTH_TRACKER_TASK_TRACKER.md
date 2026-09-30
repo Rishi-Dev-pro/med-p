@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 24 |
+| **Tasks Completed** | 26 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 22 |
-| **Overall Completion** | 52.2% |
+| **Tasks Not Started** | 20 |
+| **Overall Completion** | 56.5% |
 
 ---
 
@@ -120,8 +120,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-6.1` | Implement atomic device verification and claim pipeline during patient registration | `NOT_STARTED` | Phase 2, Phase 5 | `src/controllers/authController.js` | None (Not yet executed) | - | Enforces 1:1 reciprocal assignment |
-| `TASK-6.2` | Update registration UI with client validation, device availability feedback, and error handling | `NOT_STARTED` | `TASK-6.1` | `src/views/auth/register.ejs` | None (Not yet executed) | - | Clear error when device is already claimed |
+| `TASK-6.1` | Implement atomic device verification and claim pipeline during patient registration | `DONE` | Phase 2, Phase 5 | `src/controllers/authController.js`, `src/routes/authRoutes.js` | `node tests/patientRegistrationValidation.test.js` (Tests 1-28 PASS) | 2026-10-01 | Server-authoritative atomic claim via findOneAndUpdate with compensation rollback; 1:1 reciprocal assignment enforced |
+| `TASK-6.2` | Update registration UI with client validation, device availability feedback, and error handling | `DONE` | `TASK-6.1` | `src/views/auth/register.ejs`, `src/public/css/auth.css` | `node tests/patientRegistrationValidation.test.js` (Tests 10, 25-28 PASS) | 2026-10-01 | Real-time debounced device claim check with live visual feedback badges; clear rejection messages |
 
 ---
 

@@ -136,45 +136,84 @@ const register = async (req, res) => {
         // 6. Secure password hashing
         const passwordHash = await hashPassword(password);
 
-        // 7. Atomically create User record
-        const user = await User.create({
-            username: candidateUsername,
-            email: cleanEmail,
-            passwordHash,
-            role: ROLES.PATIENT,
-            profileId: candidateId,
-            status: ACCOUNT_STATUS.ACTIVE
-        });
+        // 7. Atomically claim device (prevents race conditions)
+        const claimedDevice = await Device.findOneAndUpdate(
+            { deviceId: cleanDeviceId, status: DEVICE_STATUS.ACTIVE, patientId: null },
+            { $set: { patientId: candidateId } },
+            { returnDocument: "after" }
+        );
 
-        // 8. Create Patient record
-        const patientAge = age !== undefined && !isNaN(Number(age)) ? Math.max(0, Number(age)) : 30;
-        const patient = await Patient.create({
-            patientId: candidateId,
-            userId: user._id,
-            name: name.trim(),
-            email: cleanEmail,
-            age: patientAge,
-            doctorId: null,
-            deviceId: device.deviceId
-        });
+        if (!claimedDevice) {
+            return res.status(400).json({
+                success: false,
+                message: `Device ${cleanDeviceId} is already assigned to another patient or inactive`
+            });
+        }
 
-        // 9. Link device to patient
-        device.patientId = candidateId;
-        await device.save();
+        let user = null;
+        let patient = null;
+
+        try {
+            // 8. Create User record (strictly hardcoded role ROLES.PATIENT)
+            user = await User.create({
+                username: candidateUsername,
+                email: cleanEmail,
+                passwordHash,
+                role: ROLES.PATIENT,
+                profileId: candidateId,
+                status: ACCOUNT_STATUS.ACTIVE
+            });
+
+            // 9. Create Patient record (strictly linked to claimed device)
+            const patientAge = age !== undefined && !isNaN(Number(age)) ? Math.max(0, Number(age)) : 30;
+            patient = await Patient.create({
+                patientId: candidateId,
+                userId: user._id,
+                name: name.trim(),
+                email: cleanEmail,
+                age: patientAge,
+                doctorId: null,
+                deviceId: cleanDeviceId
+            });
+        } catch (creationErr) {
+            // Compensation rollback: release the claimed device and clean up any created user
+            await Device.updateOne(
+                { deviceId: cleanDeviceId, patientId: candidateId },
+                { $set: { patientId: null } }
+            );
+            if (user && user._id) {
+                await User.deleteOne({ _id: user._id });
+            }
+            throw creationErr;
+        }
 
         // 10. Audit logging (non-blocking)
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.PATIENT_REGISTERED,
-                actorRole: ACTOR_ROLES.PATIENT,
-                actorId: candidateId,
-                targetType: TARGET_TYPES.PATIENT,
-                targetId: candidateId,
-                details: {
-                    deviceId: device.deviceId,
-                    email: cleanEmail
+            await ActivityLog.create([
+                {
+                    action: AUDIT_ACTIONS.PATIENT_REGISTERED,
+                    actorRole: ACTOR_ROLES.PATIENT,
+                    actorId: candidateId,
+                    targetType: TARGET_TYPES.PATIENT,
+                    targetId: candidateId,
+                    details: {
+                        deviceId: cleanDeviceId,
+                        email: cleanEmail
+                    },
+                    timestamp: new Date()
+                },
+                {
+                    action: AUDIT_ACTIONS.DEVICE_ASSIGNED,
+                    actorRole: ACTOR_ROLES.PATIENT,
+                    actorId: candidateId,
+                    targetType: TARGET_TYPES.DEVICE,
+                    targetId: cleanDeviceId,
+                    details: {
+                        patientId: candidateId
+                    },
+                    timestamp: new Date()
                 }
-            });
+            ]);
         } catch (auditErr) {
             console.warn("Registration audit log error:", auditErr.message);
         }
@@ -346,9 +385,95 @@ const getMe = async (req, res) => {
     });
 };
 
+/**
+ * Real-Time Device Claim Validation Endpoint
+ * GET /api/auth/device-status/:deviceId
+ *
+ * Checks if a device ID is:
+ * 1. UNKNOWN
+ * 2. INACTIVE
+ * 3. ASSIGNED
+ * 4. CLAIMABLE (ACTIVE + UNASSIGNED)
+ *
+ * Never leaks apiKeyHash, secrets, patient data, or telemetry.
+ */
+const getDeviceStatus = async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        if (!deviceId || typeof deviceId !== "string" || !deviceId.trim()) {
+            return res.status(400).json({
+                success: false,
+                claimable: false,
+                status: "INVALID",
+                message: "Valid deviceId parameter is required"
+            });
+        }
+
+        const cleanDeviceId = deviceId.trim().toUpperCase();
+
+        if (cleanDeviceId.length > 50) {
+            return res.status(400).json({
+                success: false,
+                claimable: false,
+                status: "INVALID",
+                message: "Invalid deviceId format"
+            });
+        }
+
+        const device = await Device.findOne({ deviceId: cleanDeviceId }).select("-apiKeyHash").lean();
+
+        if (!device) {
+            return res.status(404).json({
+                success: false,
+                claimable: false,
+                status: "UNKNOWN",
+                deviceId: cleanDeviceId,
+                message: "Device not found."
+            });
+        }
+
+        if (device.status !== DEVICE_STATUS.ACTIVE) {
+            return res.status(200).json({
+                success: true,
+                claimable: false,
+                status: "INACTIVE",
+                deviceId: cleanDeviceId,
+                message: "This device is currently inactive."
+            });
+        }
+
+        if (device.patientId !== null) {
+            return res.status(200).json({
+                success: true,
+                claimable: false,
+                status: "ASSIGNED",
+                deviceId: cleanDeviceId,
+                message: "This device is already assigned."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            claimable: true,
+            status: "CLAIMABLE",
+            deviceId: cleanDeviceId,
+            message: "This device is ready to be assigned."
+        });
+    } catch (error) {
+        console.error("Device status check error:", error.message);
+        return res.status(500).json({
+            success: false,
+            claimable: false,
+            message: "Server error validating device status"
+        });
+    }
+};
+
 module.exports = {
     register,
     login,
     logout,
-    getMe
+    getMe,
+    getDeviceStatus
 };
+

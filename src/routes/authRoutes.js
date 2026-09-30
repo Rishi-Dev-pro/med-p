@@ -12,6 +12,7 @@ const { authenticate } = require("../middleware/authMiddleware");
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/logout", authController.logout);
+router.get("/device-status/:deviceId", authController.getDeviceStatus);
 
 // Protected identity inspection endpoint
 router.get("/me", authenticate, authController.getMe);

@@ -5,6 +5,45 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-01 — Phase 6: Patient Registration UI & Real-Time Device Claim Validation
+- **Phase / Task:** PHASE 6 (`TASK-6.1`, `TASK-6.2`)
+- **Change:**
+  1. Enhanced `src/controllers/authController.js`:
+     - `getDeviceStatus`: Created server-authoritative endpoint (`GET /api/auth/device-status/:deviceId`) for public registration checking. Evaluates whether a device ID is `UNKNOWN` (404), `INACTIVE` (200, `claimable: false`), `ASSIGNED` (200, `claimable: false`), or `CLAIMABLE` (200, `claimable: true`, `"This device is ready to be assigned."`). Strips all sensitive fields (`apiKeyHash`, internal IDs, passwords, JWT secrets) and normalizes input to uppercase.
+     - `register`: Upgraded patient registration pipeline to atomically claim the hardware device using `Device.findOneAndUpdate({ deviceId, status: 'ACTIVE', patientId: null }, { $set: { patientId: candidateId } }, { returnDocument: 'after' })`. Eliminates concurrency race conditions where two simultaneous registrations target the same device. Implemented multi-stage compensation rollback: if user or patient document insertion fails, the device assignment is immediately rolled back to `patientId = null`. Enforces strict role assignment (`ROLES.PATIENT` only), ignores client-supplied `role` and `patientId` payloads, and logs both `PATIENT_REGISTERED` and `DEVICE_ASSIGNED` in `ActivityLog`.
+  2. Updated `src/routes/authRoutes.js`:
+     - Mounted `GET /device-status/:deviceId` route pointing to `authController.getDeviceStatus`.
+  3. Upgraded Patient Registration UI (`src/views/auth/register.ejs` & `src/public/css/auth.css`):
+     - Added real-time debounced (350ms) device availability checking against the backend status endpoint.
+     - Implemented dynamic status badges: Loading indicator (`"Checking device availability..."`), Success badge (`✓ This device is ready to be assigned.`), Inactive alert (`✗ This device is currently inactive.`), Assigned alert (`✗ This device is already assigned.`), and Unknown alert (`✗ Device not found.`).
+     - Added visual input state borders (`input-claimable`, `input-error`) and disabled form submission when device is unavailable or unverified.
+     - Preserved burnt-orange/dark aesthetic and added client-side confirmation check.
+  4. Implemented dedicated Phase 6 test suite (`tests/patientRegistrationValidation.test.js`):
+     - 28 comprehensive automated tests covering: valid patient registration (201 Created), missing name rejection (400), invalid email format rejection (400), duplicate email rejection (400), password mismatch rejection (400), password length validation (400), unknown device rejection (400), inactive device rejection (400), assigned device rejection (400), device status endpoint checking, 1:1 reciprocal assignment verification (`Device.patientId === Patient.patientId` and `Patient.deviceId === Device.deviceId`), one-device-per-patient invariant, assigned device claim prevention, inactive device claim prevention, post-reset reclaim verification, historical telemetry survival after reset, role spoofing defense (`SUPER_ADMIN`/`DOCTOR` injection prevention), patientId spoofing defense, doctor self-registration denial, client arbitrary flag discarding, race condition / simultaneous claim safety, failed registration rollback integrity, device status endpoint accuracy, sensitive field leak prevention (`apiKeyHash`, secrets), malformed device ID safety, and comprehensive state transitions (`CLAIMABLE`, `INACTIVE`, `ASSIGNED`, `UNKNOWN`).
+  5. Updated `package.json`:
+     - Added `test:claim` script (`node tests/patientRegistrationValidation.test.js`) and wired into master `npm test` pipeline.
+- **Reason:**
+  Establish a reliable, server-authoritative, race-condition-safe patient onboarding experience with real-time UI feedback while upholding strict database invariants, security boundaries, and zero secret leakage.
+- **Files Affected:**
+  - `src/controllers/authController.js`
+  - `src/routes/authRoutes.js`
+  - `src/views/auth/register.ejs`
+  - `src/public/css/auth.css`
+  - `package.json`
+  - `tests/patientRegistrationValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/patientRegistrationValidation.test.js`: 28/28 tests passed.
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (Phase 0 regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (Phase 1 regression).
+  - `node tests/authValidation.test.js`: 20/20 tests passed (Phase 2 regression).
+  - `node tests/rbacValidation.test.js`: 24/24 tests passed (Phase 3 regression).
+  - `node tests/adminPortalValidation.test.js`: 20/20 tests passed (Phase 4 regression).
+  - `node tests/deviceManagementValidation.test.js`: 34/34 tests passed (Phase 5 regression).
+  - `npm test`: 146/146 total tests passed with zero failures across all 7 test suites.
+
 ### 2026-10-01 — Phase 5: Hardware Device Management & Lifecycle Engine
 - **Phase / Task:** PHASE 5 (`TASK-5.1`, `TASK-5.2`, `TASK-5.3`)
 - **Change:**
