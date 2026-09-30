@@ -11,7 +11,8 @@
     "test:schema": "node tests/schemaValidation.test.js",
     "test:simulator": "node tests/iotSimulator.test.js",
     "test:auth": "node tests/authValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth"
+    "test:rbac": "node tests/rbacValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac"
   },
   "keywords": [],
   "author": "",

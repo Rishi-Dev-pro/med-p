@@ -122,9 +122,10 @@ socket.on("disconnect", () => {
     if (systemStatusSub) systemStatusSub.textContent = "Connection lost";
 });
 
-socket.on("connect_error", () => {
+socket.on("connect_error", (err) => {
     if (systemStatus) systemStatus.textContent = "OFFLINE";
-    if (systemStatusSub) systemStatusSub.textContent = "Unable to connect";
+    if (systemStatusSub) systemStatusSub.textContent = "Auth failed: " + (err.message || "Unauthorized");
+    window.location.href = "/login";
 });
 
 

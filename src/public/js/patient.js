@@ -33,8 +33,16 @@ socket.on("connect", () => {
 });
 
 socket.on("disconnect", () => {
-
     connectionStatus.textContent = "Disconnected";
+});
+
+socket.on("connect_error", (err) => {
+    console.error("Socket authentication error:", err.message);
+    if (connectionStatus) {
+        connectionStatus.textContent = "Auth Failed";
+    }
+    // Redirect to login if unauthenticated
+    window.location.href = "/login";
 });
 
 socket.on("sensor-reading", (data) => {

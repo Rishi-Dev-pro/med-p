@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 15 |
+| **Tasks Completed** | 18 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 31 |
-| **Overall Completion** | 32.6% |
+| **Tasks Not Started** | 28 |
+| **Overall Completion** | 39.1% |
 
 ---
 
@@ -84,9 +84,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-3.1` | Implement server-side auth middleware: `verifyToken`, `requireRole`, and ownership validation | `NOT_STARTED` | Phase 2 | `src/middleware/authMiddleware.js`, `src/middleware/roleMiddleware.js` | None (Not yet executed) | - | Derives claims strictly from JWT |
-| `TASK-3.2` | Implement Socket.IO handshake JWT authentication middleware and room-join authorization (`patient:<id>`, `doctor:<id>`) | `NOT_STARTED` | Phase 2 | `src/server.js` | None (Not yet executed) | - | Eliminates unauthenticated room subscriptions |
-| `TASK-3.3` | Update client-side Socket scripts to attach auth token and handle connection rejection | `NOT_STARTED` | `TASK-3.2` | `src/public/js/patient.js`, `src/public/js/doctor.js` | None (Not yet executed) | - | Secure handshake from browser |
+| `TASK-3.1` | Implement server-side auth middleware: `verifyToken`, `requireRole`, and ownership validation | `DONE` | Phase 2 | `src/middleware/authMiddleware.js`, `src/middleware/roleMiddleware.js`, `src/routes/dashboardRoutes.js`, `src/routes/adminRoutes.js` | `node tests/rbacValidation.test.js` (Tests 1-14 PASS) | 2026-09-30 | Enforces requireRole, requirePatientOwnership, requireDoctorOwnership; rejects client parameter spoofing |
+| `TASK-3.2` | Implement Socket.IO handshake JWT authentication middleware and room-join authorization (`patient:<id>`, `doctor:<id>`) | `DONE` | Phase 2 | `src/server.js` | `node tests/rbacValidation.test.js` (Tests 15-24 PASS) | 2026-09-30 | Cryptographic handshake auth, active account check, authorized room isolation, doctor reassignment protection |
+| `TASK-3.3` | Update client-side Socket scripts to attach auth token and handle connection rejection | `DONE` | `TASK-3.2` | `src/public/js/patient.js`, `src/public/js/doctor.js` | `node tests/rbacValidation.test.js` (Tests 15, 19, 21 PASS); client error handlers redirect on auth failure | 2026-09-30 | Browser Socket.IO handshake auth & connect_error redirect handling |
 
 ---
 

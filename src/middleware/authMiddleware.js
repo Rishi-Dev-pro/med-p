@@ -1,6 +1,6 @@
 /**
  * Authentication Middleware
- * Health Tracker — Phase 2: Authentication & Identity Foundation
+ * Health Tracker — Phase 2 & Phase 3: Identity & Session Verification
  */
 
 const { verifyToken } = require("../utils/authUtils");
@@ -8,8 +8,27 @@ const User = require("../models/User");
 const { ACCOUNT_STATUS } = require("../config/constants");
 
 /**
+ * Helper to determine if the request is an API/JSON request or a browser HTML page request.
+ */
+const isApiRequest = (req) => {
+    if (req.originalUrl && req.originalUrl.startsWith("/api/")) {
+        return true;
+    }
+    const accept = req.headers && req.headers.accept;
+    if (accept && accept.includes("application/json")) {
+        return true;
+    }
+    if (req.xhr) {
+        return true;
+    }
+    // If client does not explicitly accept HTML, treat as API
+    return !req.accepts || !req.accepts("html");
+};
+
+/**
  * Middleware to authenticate requests via HTTP-Only cookie or Authorization header.
- * Attaches verified user to req.user.
+ * Attaches verified user identity to req.user.
+ * Redirects to /login for unauthenticated HTML routes, returns 401 for API requests.
  */
 const authenticate = async (req, res, next) => {
     try {
@@ -29,9 +48,12 @@ const authenticate = async (req, res, next) => {
         }
 
         if (!token) {
+            if (!isApiRequest(req)) {
+                return res.redirect("/login");
+            }
             return res.status(401).json({
                 success: false,
-                message: "Authentication required. No token provided."
+                message: "Authentication required"
             });
         }
 
@@ -40,23 +62,32 @@ const authenticate = async (req, res, next) => {
         try {
             decoded = verifyToken(token);
         } catch (err) {
+            if (!isApiRequest(req)) {
+                return res.redirect("/login");
+            }
             return res.status(401).json({
                 success: false,
-                message: "Invalid or expired authentication token."
+                message: "Invalid or expired authentication token"
             });
         }
 
         // 4. Verify user exists in database and account is active
         const user = await User.findById(decoded.userId).select("-passwordHash");
         if (!user) {
+            if (!isApiRequest(req)) {
+                return res.redirect("/login");
+            }
             return res.status(401).json({
                 success: false,
-                message: "User account no longer exists."
+                message: "User account no longer exists"
             });
         }
 
         if (user.status !== ACCOUNT_STATUS.ACTIVE) {
-            return res.status(401).json({
+            if (!isApiRequest(req)) {
+                return res.status(403).send("Account is suspended. Authentication rejected.");
+            }
+            return res.status(403).json({
                 success: false,
                 message: "Account is suspended. Authentication rejected."
             });
@@ -75,6 +106,9 @@ const authenticate = async (req, res, next) => {
         next();
     } catch (error) {
         console.error("Auth middleware error:", error.message);
+        if (!isApiRequest(req)) {
+            return res.redirect("/login");
+        }
         return res.status(500).json({
             success: false,
             message: "Internal authentication error"
@@ -83,5 +117,7 @@ const authenticate = async (req, res, next) => {
 };
 
 module.exports = {
-    authenticate
+    authenticate,
+    requireAuth: authenticate,
+    isApiRequest
 };

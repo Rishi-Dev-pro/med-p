@@ -6,6 +6,7 @@ const path = require("path");
 const iotRoutes = require("./routes/iotRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.get("/register", (req, res) => {
 // ==========================================
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/iot", iotRoutes);
 app.use("/", dashboardRoutes);
 

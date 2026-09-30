@@ -5,6 +5,56 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-09-30 — Phase 3: Role-Based Authorization (RBAC) & Socket Authentication
+- **Phase / Task:** PHASE 3 (`TASK-3.1`, `TASK-3.2`, `TASK-3.3`)
+- **Change:**
+  1. Implemented server-side RBAC and ownership middleware (`src/middleware/roleMiddleware.js`):
+     - `requireRole(...roles)`: Strictly verifies authenticated role from verified JWT (`req.user.role`); rejects client-supplied roles in query, body, or params with 403 Forbidden.
+     - `requirePatientOwnership(patientIdParam)`: Enforces that patients can only access their own profile ID (`req.user.profileId === targetPatientId`); doctors can only access patients currently assigned to them in MongoDB (`patient.doctorId === req.user.profileId`); super admins are permitted; redirects unauthenticated HTML requests to `/login` and returns 401/403 for API requests.
+     - `requireDoctorOwnership(doctorIdParam)`: Enforces that doctors can only access their own dashboard (`req.user.profileId === targetDoctorId`); super admins are permitted; patients are strictly denied with 403.
+  2. Protected dashboard routes (`src/routes/dashboardRoutes.js`):
+     - `GET /patient/:patientId` guarded with `authenticate, requirePatientOwnership("patientId")`.
+     - `GET /doctor/:doctorId` guarded with `authenticate, requireDoctorOwnership("doctorId")`.
+  3. Created Super Admin foundation route (`src/routes/adminRoutes.js` mounted at `/api/admin`):
+     - `GET /api/admin/status` guarded with `authenticate, requireRole(ROLES.SUPER_ADMIN)` establishing the administrative authorization foundation.
+  4. Updated authentication middleware (`src/middleware/authMiddleware.js`):
+     - Added `isApiRequest(req)` helper to redirect unauthenticated browser HTML page requests to `/login` while returning JSON 401/403 for API requests.
+  5. Implemented Socket.IO cryptographic handshake authentication (`src/server.js`):
+     - Extracted token from `socket.handshake.auth.token`, HTTP-only cookies (`socket.handshake.headers.cookie`), or `Authorization: Bearer <token>`.
+     - Cryptographically verified JWT signature and expiration.
+     - Verified user existence in MongoDB and rejected non-ACTIVE accounts (`status !== 'ACTIVE'`) with 403 / `ACCOUNT_SUSPENDED`.
+     - Attached verified principal identity to `socket.user` (`userId`, `role`, `profileId`, `status`).
+  6. Implemented server-authorized Socket.IO room joining (`src/server.js`):
+     - Automatically auto-joins sockets to their verified rooms on connection (`patient:<profileId>` for patients, `doctor:<profileId>` for doctors, `admin:telemetry` for super admins).
+     - Filtered and validated `join-room` events: clients cannot spoof roles or target IDs; patients cannot join another patient's room; doctors can only join assigned patient rooms verified against current database state.
+     - Preserved historical telemetry immutability while ensuring reassigned patients immediately route new telemetry to their new doctor's room.
+  7. Updated client-side socket scripts (`src/public/js/patient.js`, `src/public/js/doctor.js`):
+     - Added `connect_error` listener redirecting to `/login` on authentication failure.
+  8. Created dedicated Phase 3 test suite (`tests/rbacValidation.test.js`) covering all 24 required test scenarios with 100% pass rate.
+  9. Added `test:rbac` to `package.json` and updated `npm test` script.
+- **Reason:**
+  Establish complete server-side role-based authorization and cryptographic Socket.IO handshake authentication, strictly decoupling authentication from authorization and closing cross-patient/cross-doctor data and telemetry leakage vectors.
+- **Files Affected:**
+  - `src/middleware/authMiddleware.js`
+  - `src/middleware/roleMiddleware.js`
+  - `src/routes/dashboardRoutes.js`
+  - `src/routes/adminRoutes.js`
+  - `src/app.js`
+  - `src/server.js`
+  - `src/public/js/patient.js`
+  - `src/public/js/doctor.js`
+  - `package.json`
+  - `tests/rbacValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/rbacValidation.test.js`: 24/24 tests passed.
+  - `node tests/authValidation.test.js`: 20/20 tests passed (regression).
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (regression).
+  - `npm test`: 64/64 total tests passed across all 4 suites.
+
 ### 2026-09-30 — Phase 2: Authentication & Identity Foundation
 - **Phase / Task:** PHASE 2 (`TASK-2.1` through `TASK-2.5`)
 - **Change:**

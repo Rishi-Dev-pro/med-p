@@ -4,6 +4,8 @@ const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const SensorReading = require("../models/SensorReading");
 const Doctor = require("../models/Doctor");
+const { authenticate } = require("../middleware/authMiddleware");
+const { requirePatientOwnership, requireDoctorOwnership } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ const router = express.Router();
 // PATIENT DASHBOARD
 // ==========================================
 
-router.get("/patient/:patientId", async (req, res) => {
+router.get("/patient/:patientId", authenticate, requirePatientOwnership("patientId"), async (req, res) => {
 
     try {
 
@@ -80,7 +82,7 @@ router.get("/patient/:patientId", async (req, res) => {
 // DOCTOR DASHBOARD
 // ==========================================
 
-router.get("/doctor/:doctorId", async (req, res) => {
+router.get("/doctor/:doctorId", authenticate, requireDoctorOwnership("doctorId"), async (req, res) => {
 
     try {
 
