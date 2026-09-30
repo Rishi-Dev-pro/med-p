@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 5: Hardware Device Management** (Phase 4 Completed) |
-| **Current Task** | `TASK-5.1: Implement Device Inventory API` |
-| **Overall Progress** | **45.7%** (21 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation** (5 / 20) |
+| **Current Phase** | **PHASE 6: Patient Registration & Device Claiming Pipeline** (Phase 5 Completed) |
+| **Current Task** | Awaiting Phase 6 Instruction (`TASK-6.1: Implement atomic device verification and claim pipeline`) |
+| **Overall Progress** | **52.2%** (24 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management** (6 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-5.1` to `TASK-5.3` (Phase 5 deliverables) |
-| **Verification Status** | Phase 4 verified: `tests/adminPortalValidation.test.js` passed 20/20 tests; Phase 3: 24/24 PASS; Phase 2: 20/20 PASS; Phase 1: 10/10 PASS; Phase 0: 10/10 PASS (84/84 Total PASS) |
-| **Last Updated Timestamp** | 2026-09-30 23:55:00 IST |
+| **Upcoming Tasks** | `TASK-6.1` to `TASK-6.2` (Phase 6 deliverables) |
+| **Verification Status** | Phase 5 verified: `tests/deviceManagementValidation.test.js` passed 34/34 tests; All 118 regression tests passed across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), and Phase 5 (34). |
+| **Last Updated Timestamp** | 2026-10-01 01:10:00 IST |
 
 ---
 
@@ -33,8 +33,8 @@ gantt
     RBAC & Socket Security            :done, p3, 2026-09-30, 1d
     section Phase 4-8: Admin & Inventory
     Super Admin Portal Skeleton       :done, p4, 2026-09-30, 1d
-    Hardware Device Management        :active, p5, 2026-10-01, 2d
-    Patient Registration & Claiming   :p6, after p5, 2d
+    Hardware Device Management        :done, p5, 2026-10-01, 1d
+    Patient Registration & Claiming   :active, p6, 2026-10-01, 2d
     Doctor Provisioning & Lifecycle   :p7, after p4, 2d
     Patient Doctor Assignment Engine  :p8, after p7, 2d
     section Phase 9-13: Clinical Experience
@@ -64,7 +64,7 @@ gantt
 | **2** | Authentication & Identity Foundation | `DONE` | 5 / 5 | 100% |
 | **3** | Role-Based Authorization & Socket Auth | `DONE` | 3 / 3 | 100% |
 | **4** | Super Admin Foundation & Core Dashboard | `DONE` | 3 / 3 | 100% |
-| **5** | Hardware Device Management | `NOT_STARTED` | 0 / 3 | 0% |
+| **5** | Hardware Device Management | `DONE` | 3 / 3 | 100% |
 | **6** | Patient Registration & Device Claiming | `NOT_STARTED` | 0 / 2 | 0% |
 | **7** | Doctor Management (Admin Provisioning) | `NOT_STARTED` | 0 / 4 | 0% |
 | **8** | Patient ↔ Doctor Assignment Engine | `NOT_STARTED` | 0 / 2 | 0% |
@@ -82,40 +82,29 @@ gantt
 
 ---
 
-## KNOWN DISCREPANCIES (ACTUAL CODEBASE VS FROZEN ROADMAP)
-*Updated following Phase 2 completion:*
+## KNOWN DISCREPANCIES & RESOLUTIONS
 
-1. **Resolved in Phases 0, 1, and 2:**
+1. **Resolved in Phases 0, 1, 2, 3, 4, and 5:**
    - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
    - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
    - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
-   - Secure authentication foundation implemented with `bcryptjs` password hashing (salt rounds >= 10) and `jsonwebtoken` issuance (`src/utils/authUtils.js`, `src/config/auth.js`).
-   - Patient registration endpoint (`POST /api/auth/register`) with device validation (existence, active status, unassigned state).
-   - Unified login endpoint (`POST /api/auth/login`) supporting email, username, or patient name with account status enforcement.
-   - Logout endpoint (`POST /api/auth/logout`) clearing HTTP-only authentication cookies.
-   - Reusable authentication middleware (`src/middleware/authMiddleware.js`) extracting JWT from cookies or headers and verifying active status.
-   - Server-rendered EJS views for login (`/login`) and registration (`/register`) with burnt-orange dark theme styling.
-   - Super Admin account seeder (`src/seed/seedAdmin.js`, `src/seed/seed.js`) with idempotent execution.
-
-1. **Resolved in Phases 0, 1, 2, 3, and 4:**
-   - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
-   - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
-   - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
-   - Secure authentication foundation implemented with `bcryptjs` password hashing (salt rounds >= 10) and `jsonwebtoken` issuance (`src/utils/authUtils.js`, `src/config/auth.js`).
+   - Secure authentication foundation implemented with `bcryptjs` password hashing and `jsonwebtoken` issuance.
    - Server-side RBAC middleware (`src/middleware/roleMiddleware.js`) enforcing `requireRole`, `requirePatientOwnership`, and `requireDoctorOwnership`.
-   - Dashboard routes (`/patient/:patientId` and `/doctor/:doctorId`) strictly protected against cross-patient and cross-doctor data enumeration.
-   - Socket.IO cryptographic handshake JWT authentication via `io.use()` validating active account status and rejecting suspended/unauthenticated connections.
-   - Super Admin portal and layout (`/admin`, `/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`) implemented with reusable EJS sidebar/topbar and live aggregated MongoDB metrics.
-   - Read-only management foundation pages established for doctors, patients, devices, and activity stream.
+   - Socket.IO cryptographic handshake JWT authentication via `io.use()` validating active account status.
+   - Super Admin portal foundation and layout (`/admin`, `/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`).
+   - **Hardware Device Management (Phase 5):** Complete device lifecycle engine in `src/controllers/adminDeviceController.js` and `/api/admin/devices` endpoints (Create, List, Detail, Activate, Deactivate, Reset, Delete, Assign).
+   - **Reset Invariants:** Atomic reset engine sets `Device.patientId = null` and former `Patient.deviceId = null`, increments `resetCount`, strictly preserves all historical `SensorReading` telemetry records and Patient account, and logs `DEVICE_RESET` in `ActivityLog`.
+   - **Decommission Safety:** Deleting a device is permitted only if unassigned (`patientId === null`); historical readings are strictly preserved.
+   - **Interactive UI:** Device management view (`src/views/admin/devices.ejs`) upgraded with Provisioning modal, Activate/Deactivate toggles, Reset confirmation modal, Decommission modal, and dual status pills (Lifecycle Status + Binding Status).
+   - **Device Detail View:** Server-rendered detailed hardware telemetry overview view created at `src/views/admin/deviceDetail.ejs`.
 
-2. **Route & Operational Discrepancies (Scheduled for Phase 5+):**
-   - Device inventory lifecycle, activate/deactivate, and atomic reset operations await Phase 5.
+2. **Route & Operational Discrepancies (Scheduled for Phase 6+):**
+   - Patient registration public UI and real-time claim validation refinement awaits Phase 6.
    - Doctor creation, credential generation, and suspension management await Phase 7.
    - Patient ↔ doctor assignment engine and UI await Phase 8.
 
 ---
 
 ## NEXT IMMEDIATE ACTIONS
-1. Commit Phase 4 implementation and push to GitHub.
-2. Await instruction to start Phase 5 (Hardware Device Management).
-3. In Phase 5: Implement Hardware Device Inventory API, atomic reset engine, and device management UI (`TASK-5.1` to `TASK-5.3`).
+1. Commit Phase 5 implementation and push to GitHub.
+2. Await instruction before beginning Phase 6 (Patient Registration & Device Claiming Pipeline).

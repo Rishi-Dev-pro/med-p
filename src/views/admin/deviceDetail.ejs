@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Super Admin Device <%= device.deviceId %></title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+    <%- include("partials/sidebar", { activePage, user }) %>
+
+    <div class="admin-main">
+        <%- include("partials/topbar", { 
+            pageTitle: `Hardware Device: ${device.deviceId}`, 
+            pageSubtitle: "Hardware configuration, active assignment, telemetry overview, and audit trail",
+            user 
+        }) %>
+
+        <main class="admin-content-body">
+            <div style="margin-bottom: 20px;">
+                <a href="/admin/devices" style="color: var(--burnt-orange); text-decoration: none; font-size: 13px; font-weight: 500;">
+                    &larr; Back to Device Inventory
+                </a>
+            </div>
+
+            <!-- Overview Metrics for this Device -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Lifecycle Status</span>
+                    <div style="margin-top: 8px;">
+                        <span class="status-pill <%= (device.status === 'ACTIVE' || device.status === 'active') ? 'active-pill' : 'inactive-pill' %>">
+                            <%= (device.status || 'ACTIVE').toUpperCase() %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Binding Status</span>
+                    <div style="margin-top: 8px;">
+                        <span class="status-pill <%= device.patientId ? 'assigned-pill' : 'unassigned-pill' %>">
+                            <%= device.patientId ? 'ASSIGNED' : 'UNASSIGNED' %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Total Resets</span>
+                    <div class="metric-value"><%= device.resetCount || 0 %></div>
+                    <span class="metric-sub">hardware reset cycles</span>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Telemetry Ingested</span>
+                    <div class="metric-value"><%= (device.telemetry && device.telemetry.totalReadings) || 0 %></div>
+                    <span class="metric-sub">recorded sensor readings</span>
+                </div>
+            </div>
+
+            <!-- Hardware & Assignment Information -->
+            <div class="data-split-grid" style="margin-top: 24px;">
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Hardware Specifications</h2>
+                    </div>
+                    <div style="padding: 16px; font-size: 13px; line-height: 1.8;">
+                        <p><strong>Device ID:</strong> <code><%= device.deviceId %></code></p>
+                        <p><strong>Hardware Type:</strong> <%= device.type || 'VITAL_TELEMETRY' %></p>
+                        <p><strong>Last Activity / Ping:</strong> <%= device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'No recent telemetry' %></p>
+                        <p><strong>Provisioned Date:</strong> <%= device.createdAt ? new Date(device.createdAt).toLocaleString() : '—' %></p>
+                        <p><strong>Last Updated:</strong> <%= device.updatedAt ? new Date(device.updatedAt).toLocaleString() : '—' %></p>
+                    </div>
+                </section>
+
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Assigned Patient Profile</h2>
+                    </div>
+                    <div style="padding: 16px; font-size: 13px; line-height: 1.8;">
+                        <% if (device.patient) { %>
+                            <p><strong>Patient ID:</strong> <code><%= device.patient.patientId %></code></p>
+                            <p><strong>Name:</strong> <%= device.patient.name %></p>
+                            <p><strong>Email:</strong> <%= device.patient.email %></p>
+                            <p><strong>Age:</strong> <%= device.patient.age %> years</p>
+                            <p><strong>Attending Doctor:</strong> <%= device.patient.doctorId || 'Unassigned' %></p>
+                        <% } else { %>
+                            <div class="empty-state" style="padding: 24px 0;">
+                                <div class="empty-state-icon">👤</div>
+                                <h3>Unit Unassigned</h3>
+                                <p>This device is currently sitting unassigned in inventory. It can be claimed by a new patient during registration.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Recent Telemetry & Audit Stream -->
+            <div class="data-split-grid" style="margin-top: 24px;">
+                <!-- Telemetry Snapshot -->
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Latest Telemetry Reading</h2>
+                    </div>
+                    <div style="padding: 16px;">
+                        <% if (device.telemetry && device.telemetry.latestReading) { %>
+                            <div style="background: var(--surface-light); padding: 14px; border-radius: 8px; font-size: 13px; line-height: 1.8;">
+                                <p><strong>Heart Rate / Value 1:</strong> <%= device.telemetry.latestReading.value1 %> bpm</p>
+                                <p><strong>SpO2 / Value 2:</strong> <%= device.telemetry.latestReading.value2 %> %</p>
+                                <p><strong>Reading Timestamp:</strong> <%= new Date(device.telemetry.latestReading.timestamp).toLocaleString() %></p>
+                                <p><strong>Patient Context:</strong> <%= device.telemetry.latestReading.patientId %></p>
+                            </div>
+                        <% } else { %>
+                            <div class="empty-state" style="padding: 24px 0;">
+                                <div class="empty-state-icon">📊</div>
+                                <h3>No Telemetry Data</h3>
+                                <p>No sensor readings have been received from this device yet.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </section>
+
+                <!-- Activity Trail -->
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Device Lifecycle History</h2>
+                    </div>
+                    <% if (!device.recentActivity || device.recentActivity.length === 0) { %>
+                        <div class="empty-state" style="padding: 24px 0;">
+                            <div class="empty-state-icon">📋</div>
+                            <h3>No activity recorded</h3>
+                            <p>No lifecycle mutations have been recorded for this device.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="activity-feed" style="padding: 16px;">
+                            <% device.recentActivity.forEach(act => { %>
+                                <div class="activity-item" style="display: flex; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                                    <div class="activity-icon" style="font-size: 16px;">📝</div>
+                                    <div class="activity-details" style="font-size: 12px;">
+                                        <strong><%= act.action %></strong>
+                                        <div style="color: var(--muted); margin-top: 2px;">
+                                            By <%= act.actorRole %> (<%= act.actorId %>) &middot; <%= new Date(act.timestamp).toLocaleString() %>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    <% } %>
+                </section>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

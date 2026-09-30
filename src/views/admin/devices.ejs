@@ -14,30 +14,37 @@
     <div class="admin-main">
         <%- include("partials/topbar", { 
             pageTitle: "Device Inventory", 
-            pageSubtitle: "Hardware sensor telemetry devices, binding status, and hardware reset counters",
+            pageSubtitle: "Hardware sensor telemetry devices, binding status, lifecycle state, and hardware reset engine",
             user 
         }) %>
 
         <main class="admin-content-body">
-            <!-- Phase 5 Foundation Notice -->
-            <div class="foundation-banner">
-                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+            <!-- Phase 5 Active Device Lifecycle Banner -->
+            <div class="foundation-banner" style="border-left: 3px solid var(--burnt-orange);">
+                <span class="foundation-badge" style="background: var(--burnt-orange);">PHASE 5 ENGINE</span>
                 <p>
-                    <strong>Read-Only Hardware Inventory:</strong> Physical IoT devices indexed directly from MongoDB. Hardware provisioning, status toggles (Activate/Deactivate), atomic reset operations, and decommissioning controls will be implemented in <strong>Phase 5 (Hardware Device Management)</strong>.
+                    <strong>Hardware Device Lifecycle Engine:</strong> Full device lifecycle management active. Super Admins can provision devices, toggle hardware availability (Activate/Deactivate), trigger atomic unlinking and resets with historical telemetry preserved, and safely decommission unassigned units.
                 </p>
             </div>
 
             <section class="section-panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">Hardware Telemetry Units</h2>
-                    <span class="panel-badge"><%= devices ? devices.length : 0 %> Devices</span>
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h2 class="panel-title">Hardware Telemetry Units</h2>
+                        <span class="panel-badge" id="deviceCountBadge"><%= devices ? devices.length : 0 %> Devices</span>
+                    </div>
+                    <button type="button" class="btn-primary-action" id="openCreateDeviceBtn">
+                        <span>+</span> Provision Device
+                    </button>
                 </div>
+
+                <div id="operationAlert" style="display: none; margin: 16px 0; padding: 12px 16px; border-radius: 8px; font-size: 13px;"></div>
 
                 <% if (!devices || devices.length === 0) { %>
                     <div class="empty-state">
                         <div class="empty-state-icon">📟</div>
                         <h3>No devices found</h3>
-                        <p>No IoT devices have been registered in the hardware database yet. Devices will appear here once provisioned.</p>
+                        <p>No IoT devices have been registered in the hardware database yet. Click "Provision Device" to add your first hardware unit.</p>
                     </div>
                 <% } else { %>
                     <div class="table-responsive">
@@ -46,37 +53,85 @@
                                 <tr>
                                     <th>Device ID</th>
                                     <th>Type</th>
-                                    <th>Hardware Status</th>
+                                    <th>Lifecycle Status</th>
+                                    <th>Binding Status</th>
                                     <th>Assigned Patient</th>
                                     <th>Reset Count</th>
                                     <th>Last Activity / Updated</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% devices.forEach(d => { %>
-                                    <tr>
-                                        <td class="id-cell"><%= d.deviceId %></td>
-                                        <td><%= d.type %></td>
+                                <% devices.forEach(d => { 
+                                    const isActive = (d.status === 'ACTIVE' || d.status === 'active');
+                                    const isAssigned = !!d.patientId;
+                                %>
+                                    <tr id="row-<%= d.deviceId %>">
+                                        <td class="id-cell">
+                                            <strong><%= d.deviceId %></strong>
+                                        </td>
+                                        <td><%= d.type || 'VITAL_TELEMETRY' %></td>
                                         <td>
-                                            <span class="status-pill <%= (d.status === 'ACTIVE' || d.status === 'active') ? 'active-pill' : 'inactive-pill' %>">
+                                            <span class="status-pill <%= isActive ? 'active-pill' : 'inactive-pill' %>" id="status-<%= d.deviceId %>">
                                                 <%= (d.status || 'ACTIVE').toUpperCase() %>
                                             </span>
                                         </td>
                                         <td>
+                                            <span class="status-pill <%= isAssigned ? 'assigned-pill' : 'unassigned-pill' %>" id="binding-<%= d.deviceId %>">
+                                                <%= isAssigned ? 'ASSIGNED' : 'UNASSIGNED' %>
+                                            </span>
+                                        </td>
+                                        <td id="patient-<%= d.deviceId %>">
                                             <% if (d.patientId) { %>
                                                 <span class="id-cell"><%= d.patientId %></span>
                                                 <% if (d.patientName) { %>
                                                     <span class="metric-sub">(<%= d.patientName %>)</span>
                                                 <% } %>
                                             <% } else { %>
-                                                <span class="status-pill unassigned-pill">UNASSIGNED (IN INVENTORY)</span>
+                                                <span class="metric-sub" style="color: var(--muted); font-style: italic;">None (In Inventory)</span>
                                             <% } %>
                                         </td>
                                         <td>
-                                            <strong><%= d.resetCount %></strong>
+                                            <strong id="resets-<%= d.deviceId %>"><%= d.resetCount %></strong>
                                             <span class="metric-sub">resets</span>
                                         </td>
-                                        <td><%= d.updatedAt ? new Date(d.updatedAt).toLocaleString() : (d.createdAt ? new Date(d.createdAt).toLocaleString() : "—") %></td>
+                                        <td>
+                                            <%= d.lastSeen ? new Date(d.lastSeen).toLocaleString() : (d.updatedAt ? new Date(d.updatedAt).toLocaleString() : (d.createdAt ? new Date(d.createdAt).toLocaleString() : "—")) %>
+                                        </td>
+                                        <td>
+                                            <div class="action-btn-group">
+                                                <% if (isActive) { %>
+                                                    <button type="button" 
+                                                            class="btn-action btn-deactivate" 
+                                                            title="Deactivate device"
+                                                            onclick="toggleDeviceStatus('<%= d.deviceId %>', false)">
+                                                        Deactivate
+                                                    </button>
+                                                <% } else { %>
+                                                    <button type="button" 
+                                                            class="btn-action btn-activate" 
+                                                            title="Activate device"
+                                                            onclick="toggleDeviceStatus('<%= d.deviceId %>', true)">
+                                                        Activate
+                                                    </button>
+                                                <% } %>
+
+                                                <button type="button" 
+                                                        class="btn-action btn-reset" 
+                                                        title="<%= isAssigned ? 'Unbind patient and reset hardware' : 'Reset hardware counter' %>"
+                                                        onclick="openResetModal('<%= d.deviceId %>', '<%= d.patientId || '' %>', '<%= d.patientName || '' %>')">
+                                                    Reset
+                                                </button>
+
+                                                <button type="button" 
+                                                        class="btn-action btn-delete" 
+                                                        title="<%= isAssigned ? 'Cannot delete an assigned device. Reset first.' : 'Decommission/Delete device from inventory' %>"
+                                                        <%= isAssigned ? 'disabled' : '' %>
+                                                        onclick="openDeleteModal('<%= d.deviceId %>')">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>
@@ -87,5 +142,280 @@
         </main>
     </div>
 </div>
+
+<!-- ========================================================
+     MODAL 1: PROVISION / CREATE DEVICE MODAL
+     ======================================================== -->
+<div class="modal-backdrop" id="createDeviceModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><span>📟</span> Provision Hardware Device</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('createDeviceModal')">&times;</button>
+        </div>
+        <form id="createDeviceForm" onsubmit="handleCreateDevice(event)">
+            <div class="modal-body">
+                <p style="margin-top: 0; color: var(--muted); font-size: 13px;">
+                    Register a new hardware IoT device in the inventory. The unit will start in <strong>ACTIVE</strong> state with 0 resets and no patient assigned.
+                </p>
+                <div class="modal-field">
+                    <label for="newDeviceId">Device ID (Unique Hardware Identifier) *</label>
+                    <input type="text" id="newDeviceId" class="modal-input" placeholder="e.g. DEV-003, DEV-104" required autocomplete="off" />
+                </div>
+                <div class="modal-field">
+                    <label for="newDeviceType">Device Telemetry Type</label>
+                    <select id="newDeviceType" class="modal-input">
+                        <option value="VITAL_TELEMETRY">VITAL_TELEMETRY (Default Standard Vitals)</option>
+                        <option value="ECG_MONITOR">ECG_MONITOR (Cardiac Stream)</option>
+                        <option value="PULSE_OX">PULSE_OX (Oxygen & Pulse Unit)</option>
+                        <option value="GLUCO_METER">GLUCO_METER (Continuous Glucose)</option>
+                    </select>
+                </div>
+                <div id="createDeviceError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 8px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('createDeviceModal')">Cancel</button>
+                <button type="submit" class="btn-primary-action" id="submitCreateBtn">Provision Device</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL 2: SAFE RESET CONFIRMATION MODAL
+     ======================================================== -->
+<div class="modal-backdrop" id="resetDeviceModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><span>⚠️</span> Confirm Hardware Device Reset</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('resetDeviceModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-warning-box">
+                <strong>ATOMIC HARDWARE UNLINKING:</strong>
+                Resetting will break the current ownership link between device <strong id="resetTargetDeviceId">—</strong> and patient <strong id="resetTargetPatient">—</strong>.
+            </div>
+
+            <ul style="padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--text);">
+                <li><strong>Patient Account:</strong> Remains active and completely intact.</li>
+                <li><strong>Historical Telemetry:</strong> All historical readings in <code>SensorReading</code> are <strong>strictly preserved</strong>.</li>
+                <li><strong>Hardware Invariant:</strong> <code>Device.patientId</code> and <code>Patient.deviceId</code> are atomically set to <code>null</code>.</li>
+                <li><strong>Reset Counter:</strong> The device hardware reset count is incremented by 1.</li>
+                <li><strong>Reclaimability:</strong> The device returns to <code>ACTIVE + UNASSIGNED</code> inventory ready for future patient binding.</li>
+            </ul>
+
+            <div id="resetDeviceError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('resetDeviceModal')">Cancel</button>
+            <button type="button" class="btn-warning-confirm" id="confirmResetBtn" onclick="executeDeviceReset()">Confirm Reset</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL 3: SAFE DELETE / DECOMMISSION CONFIRMATION MODAL
+     ======================================================== -->
+<div class="modal-backdrop" id="deleteDeviceModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><span>🗑️</span> Decommission Hardware Device</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('deleteDeviceModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-danger-box">
+                <strong>PERMANENT INVENTORY REMOVAL:</strong>
+                You are about to decommission and delete hardware unit <strong id="deleteTargetDeviceId">—</strong> from active inventory.
+            </div>
+
+            <ul style="padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--text);">
+                <li><strong>Safety Check:</strong> Only completely unassigned devices can be decommissioned.</li>
+                <li><strong>Data Integrity:</strong> Historical sensor readings previously captured by this unit will <strong>NOT</strong> be deleted.</li>
+                <li><strong>Audit Stream:</strong> A <code>DEVICE_DELETED</code> entry will be recorded in the system audit log.</li>
+            </ul>
+
+            <div id="deleteDeviceError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('deleteDeviceModal')">Cancel</button>
+            <button type="button" class="btn-danger-confirm" id="confirmDeleteBtn" onclick="executeDeviceDelete()">Decommission Device</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     CLIENT-SIDE LIFECYCLE SCRIPTS
+     ======================================================== -->
+<script>
+    let activeResetTarget = null;
+    let activeDeleteTarget = null;
+
+    function showAlert(message, isSuccess = true) {
+        const el = document.getElementById("operationAlert");
+        el.style.display = "block";
+        el.style.backgroundColor = isSuccess ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)";
+        el.style.color = isSuccess ? "#4ADE80" : "#F87171";
+        el.style.border = `1px solid ${isSuccess ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`;
+        el.textContent = message;
+        setTimeout(() => {
+            el.style.display = "none";
+        }, 5000);
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add("open");
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove("open");
+    }
+
+    // Provision Device Modal
+    document.getElementById("openCreateDeviceBtn").addEventListener("click", () => {
+        document.getElementById("newDeviceId").value = "";
+        document.getElementById("createDeviceError").style.display = "none";
+        openModal("createDeviceModal");
+    });
+
+    async function handleCreateDevice(e) {
+        e.preventDefault();
+        const deviceId = document.getElementById("newDeviceId").value.trim().toUpperCase();
+        const type = document.getElementById("newDeviceType").value;
+        const errEl = document.getElementById("createDeviceError");
+        const submitBtn = document.getElementById("submitCreateBtn");
+
+        errEl.style.display = "none";
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Provisioning...";
+
+        try {
+            const res = await fetch("/api/admin/devices", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({ deviceId, type })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errEl.textContent = data.message || "Failed to provision device";
+                errEl.style.display = "block";
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Provision Device";
+                return;
+            }
+
+            closeModal("createDeviceModal");
+            showAlert(`Device ${deviceId} provisioned successfully! Reloading...`, true);
+            setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+            errEl.textContent = "Network error communicating with server";
+            errEl.style.display = "block";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Provision Device";
+        }
+    }
+
+    // Toggle Activate / Deactivate
+    async function toggleDeviceStatus(deviceId, shouldActivate) {
+        const action = shouldActivate ? "activate" : "deactivate";
+        try {
+            const res = await fetch(`/api/admin/devices/${encodeURIComponent(deviceId)}/${action}`, {
+                method: "PATCH",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showAlert(data.message || `Failed to ${action} device`, false);
+                return;
+            }
+            showAlert(`Device ${deviceId} ${action}d successfully! Reloading...`, true);
+            setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+            showAlert(`Network error attempting to ${action} device`, false);
+        }
+    }
+
+    // Reset Modal
+    function openResetModal(deviceId, patientId, patientName) {
+        activeResetTarget = deviceId;
+        document.getElementById("resetTargetDeviceId").textContent = deviceId;
+        document.getElementById("resetTargetPatient").textContent = patientId ? `${patientId} (${patientName || 'Patient'})` : "None (Unassigned)";
+        document.getElementById("resetDeviceError").style.display = "none";
+        openModal("resetDeviceModal");
+    }
+
+    async function executeDeviceReset() {
+        if (!activeResetTarget) return;
+        const btn = document.getElementById("confirmResetBtn");
+        const errEl = document.getElementById("resetDeviceError");
+        errEl.style.display = "none";
+        btn.disabled = true;
+        btn.textContent = "Resetting...";
+
+        try {
+            const res = await fetch(`/api/admin/devices/${encodeURIComponent(activeResetTarget)}/reset`, {
+                method: "POST",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errEl.textContent = data.message || "Failed to reset device";
+                errEl.style.display = "block";
+                btn.disabled = false;
+                btn.textContent = "Confirm Reset";
+                return;
+            }
+
+            closeModal("resetDeviceModal");
+            showAlert(`Device ${activeResetTarget} reset successfully. Reloading...`, true);
+            setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+            errEl.textContent = "Network error executing reset";
+            errEl.style.display = "block";
+            btn.disabled = false;
+            btn.textContent = "Confirm Reset";
+        }
+    }
+
+    // Delete Modal
+    function openDeleteModal(deviceId) {
+        activeDeleteTarget = deviceId;
+        document.getElementById("deleteTargetDeviceId").textContent = deviceId;
+        document.getElementById("deleteDeviceError").style.display = "none";
+        openModal("deleteDeviceModal");
+    }
+
+    async function executeDeviceDelete() {
+        if (!activeDeleteTarget) return;
+        const btn = document.getElementById("confirmDeleteBtn");
+        const errEl = document.getElementById("deleteDeviceError");
+        errEl.style.display = "none";
+        btn.disabled = true;
+        btn.textContent = "Decommissioning...";
+
+        try {
+            const res = await fetch(`/api/admin/devices/${encodeURIComponent(activeDeleteTarget)}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errEl.textContent = data.message || "Failed to delete device";
+                errEl.style.display = "block";
+                btn.disabled = false;
+                btn.textContent = "Decommission Device";
+                return;
+            }
+
+            closeModal("deleteDeviceModal");
+            showAlert(`Device ${activeDeleteTarget} deleted successfully! Reloading...`, true);
+            setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+            errEl.textContent = "Network error executing deletion";
+            errEl.style.display = "block";
+            btn.disabled = false;
+            btn.textContent = "Decommission Device";
+        }
+    }
+</script>
 </body>
 </html>

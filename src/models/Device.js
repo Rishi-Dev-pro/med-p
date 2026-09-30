@@ -9,6 +9,11 @@ const deviceSchema = new mongoose.Schema(
             unique: true,
             trim: true
         },
+        type: {
+            type: String,
+            default: "VITAL_TELEMETRY",
+            trim: true
+        },
         status: {
             type: String,
             required: [true, "status is required"],

@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 21 |
+| **Tasks Completed** | 24 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 25 |
-| **Overall Completion** | 45.7% |
+| **Tasks Not Started** | 22 |
+| **Overall Completion** | 52.2% |
 
 ---
 
@@ -108,9 +108,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-5.1` | Implement Device Inventory API (`GET /admin/devices`, `POST /admin/devices`, `PATCH /admin/devices/:deviceId/activate`, `PATCH .../deactivate`, `DELETE ...`) | `NOT_STARTED` | Phase 4 | `src/controllers/adminDeviceController.js`, `src/routes/adminRoutes.js` | None (Not yet executed) | - | Only unassigned devices can be deleted |
-| `TASK-5.2` | Implement atomic device reset operation (`POST /admin/devices/:deviceId/reset`): unbind patient, set `patientId=null`, increment `resetCount`, preserve readings, audit log | `NOT_STARTED` | `TASK-5.1` | `src/controllers/adminDeviceController.js` | None (Not yet executed) | - | Critical hardware lifecycle invariant |
-| `TASK-5.3` | Build Device Management UI with inventory table, status badges, action buttons, and reset confirmation modal | `NOT_STARTED` | `TASK-5.1`, `TASK-5.2` | `src/views/admin/devices.ejs` | None (Not yet executed) | - | Admin hardware operations console |
+| `TASK-5.1` | Implement Device Inventory API (`GET /admin/devices`, `POST /admin/devices`, `GET .../:deviceId`, `PATCH .../activate`, `PATCH .../deactivate`, `DELETE ...`) | `DONE` | Phase 4 | `src/controllers/adminDeviceController.js`, `src/routes/adminRoutes.js` | `node tests/deviceManagementValidation.test.js` (Tests 1-13, 29, 31-34 PASS) | 2026-10-01 | Super Admin protected; only unassigned units can be deleted |
+| `TASK-5.2` | Implement atomic device reset operation (`POST /admin/devices/:deviceId/reset`): unbind patient, set `patientId=null`, increment `resetCount`, preserve readings, audit log | `DONE` | `TASK-5.1` | `src/controllers/adminDeviceController.js` | `node tests/deviceManagementValidation.test.js` (Tests 14-22, 28 PASS) | 2026-10-01 | Critical hardware lifecycle invariant; adaptive session transaction with compensation rollback |
+| `TASK-5.3` | Build Device Management UI with inventory table, status badges, action buttons, and reset confirmation modal | `DONE` | `TASK-5.1`, `TASK-5.2` | `src/views/admin/devices.ejs`, `src/public/css/admin.css` | `node tests/deviceManagementValidation.test.js` (Test 30 PASS) | 2026-10-01 | Admin hardware operations console with safe confirmation modals |
 
 ---
 

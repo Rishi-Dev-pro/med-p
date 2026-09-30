@@ -5,6 +5,55 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-01 — Phase 5: Hardware Device Management & Lifecycle Engine
+- **Phase / Task:** PHASE 5 (`TASK-5.1`, `TASK-5.2`, `TASK-5.3`)
+- **Change:**
+  1. Implemented `src/controllers/adminDeviceController.js`:
+     - `createDevice`: Provisions new hardware devices (`status: ACTIVE`, `patientId: null`, `resetCount: 0`). Rejects duplicate device IDs cleanly with 400 Bad Request. Sanitizes outputs to ensure `apiKeyHash` is never exposed. Logs `DEVICE_CREATED` in `ActivityLog`.
+     - `getDevices`: Lists all registered devices with populated patient information (`name`, `patientId`), lifecycle status, and reset count. Supports both JSON API and EJS view rendering.
+     - `getDeviceById`: Retrieves detailed hardware specifications, current assignment, telemetry metrics (`totalReadings`, `latestReading`), and recent audit events for a single device.
+     - `activateDevice` & `deactivateDevice`: Toggles device operational status (`ACTIVE` / `INACTIVE`). Strictly preserves patient ownership (`patientId`) and `resetCount`. Logs `DEVICE_ACTIVATED` / `DEVICE_DEACTIVATED` in `ActivityLog`.
+     - `resetDevice`: Executes safe, atomic-style device reset. Unlinks patient (`Device.patientId = null`, `Patient.deviceId = null`), increments `Device.resetCount` by 1, strictly preserves all historical `SensorReading` records and Patient account, and logs `DEVICE_RESET` in `ActivityLog`. Uses MongoDB session transactions where supported by the cluster, with compensation rollback in standalone development environments.
+     - `deleteDevice`: Decommissions and permanently deletes hardware unit only when unassigned (`patientId === null`). Rejects deletion of assigned devices with 400 Bad Request. Strictly preserves all historical telemetry records previously captured by the device. Logs `DEVICE_DELETED` in `ActivityLog`.
+     - `assignDevice`: Enforces 1:1 reciprocal assignment invariants (`Device -> max 1 Patient`, `Patient -> max 1 Device`). Validates active status, unassigned state, and updates both records atomically. Logs `DEVICE_ASSIGNED`.
+  2. Updated `src/routes/adminRoutes.js`:
+     - Mounted all Phase 5 device management routes under `/api/admin/devices` and `/admin/devices`.
+     - Guarded all mutation endpoints with `authenticate` and `requireRole(ROLES.SUPER_ADMIN)`.
+  3. Upgraded `src/models/Device.js`:
+     - Added explicit `type` field (default `"VITAL_TELEMETRY"`).
+     - Preserved unique partial index on `patientId` (`partialFilterExpression: { patientId: { $type: "string" } }`) and standard index on `status`.
+  4. Upgraded Super Admin UI (`src/views/admin/devices.ejs` & `src/public/css/admin.css`):
+     - Interactive Device Provisioning modal with validation and uppercase normalizer.
+     - Table displaying Device ID, Type, separate Lifecycle Status pill (`ACTIVE`/`INACTIVE`), Binding Status pill (`ASSIGNED`/`UNASSIGNED`), Assigned Patient, Reset Count, and Last Activity.
+     - Action buttons: Activate / Deactivate toggles, Reset confirmation modal (detailing unlinking effect and telemetry preservation), and Decommission modal (with safety lock preventing deletion of assigned devices).
+     - Created detailed hardware inspector view at `src/views/admin/deviceDetail.ejs`.
+  5. Implemented comprehensive test suite `tests/deviceManagementValidation.test.js`:
+     - Covered all 34 automated test cases including creation, RBAC checks (Patient/Doctor/Unauthenticated rejection), duplicate rejection, default states, activation/deactivation ownership preservation, IoT telemetry rejection when inactive, atomic reset unlinking, reading/account preservation, 1:1 invariants, ActivityLog audit recording, details retrieval, and safe delete validation.
+  6. Updated `package.json`:
+     - Added `test:device` script and wired into `npm test` runner.
+- **Reason:**
+  Deliver complete hardware device lifecycle management and administration for Super Admins while enforcing database invariants, telemetry immutability, and 1:1 ownership.
+- **Files Affected:**
+  - `src/controllers/adminDeviceController.js`
+  - `src/routes/adminRoutes.js`
+  - `src/models/Device.js`
+  - `src/views/admin/devices.ejs`
+  - `src/views/admin/deviceDetail.ejs`
+  - `src/public/css/admin.css`
+  - `package.json`
+  - `tests/deviceManagementValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/deviceManagementValidation.test.js`: 34/34 tests passed.
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (regression).
+  - `node tests/authValidation.test.js`: 20/20 tests passed (regression).
+  - `node tests/rbacValidation.test.js`: 24/24 tests passed (regression).
+  - `node tests/adminPortalValidation.test.js`: 20/20 tests passed (regression).
+  - `npm test`: 118/118 total tests passed with zero failures across all suites.
+
 ### 2026-09-30 — Phase 4: Super Admin Portal & Layout
 - **Phase / Task:** PHASE 4 (`TASK-4.1`, `TASK-4.2`, `TASK-4.3`)
 - **Change:**

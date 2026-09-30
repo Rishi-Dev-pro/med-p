@@ -13,7 +13,8 @@
     "test:auth": "node tests/authValidation.test.js",
     "test:rbac": "node tests/rbacValidation.test.js",
     "test:admin": "node tests/adminPortalValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin"
+    "test:device": "node tests/deviceManagementValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device"
   },
   "keywords": [],
   "author": "",
