@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>HealthTrack — Patient</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/patient.css">
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <aside class="sidebar">
+
+            <div class="brand">
+                <div class="brand-mark">H</div>
+
+                <div>
+                    <strong>HealthTrack</strong>
+                    <span>Patient Portal</span>
+                </div>
+            </div>
+
+            <nav>
+                <a class="active">Overview</a>
+                <a>Live Data</a>
+                <a>History</a>
+                <a>Profile</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                System Online
+            </div>
+
+        </aside>
+
+
+        <main class="main-content">
+
+            <header class="topbar">
+
+                <div>
+                    <span class="eyebrow">PATIENT DASHBOARD</span>
+                    <h1>Good evening, <%= patient.name %></h1>
+                </div>
+
+                <div class="live-status">
+                    <span class="status-dot"></span>
+                    LIVE
+                </div>
+
+            </header>
+
+
+            <section class="hero-card">
+
+                <div>
+                    <span class="eyebrow">CONNECTED DEVICE</span>
+
+                    <h2><%= device ? device.deviceId : 'No Device' %></h2>
+
+                    <p>
+                        Your health device is connected
+                        and transmitting data.
+                    </p>
+                </div>
+
+                <div class="device-orb">
+                    <span>●</span>
+                </div>
+
+            </section>
+
+
+            <section class="metrics-grid">
+
+                <article class="metric-card">
+
+                    <span class="metric-label">
+                        VALUE 01
+                    </span>
+
+                    <strong id="value1">
+                        <%= latestReading ? latestReading.value1 : '--' %>
+                    </strong>
+
+                    <span class="metric-state">
+                        <%= latestReading ? 'Latest reading' : 'Waiting for data' %>
+                    </span>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <span class="metric-label">
+                        VALUE 02
+                    </span>
+
+                    <strong id="value2">
+                        <%= latestReading ? latestReading.value2 : '--' %>
+                    </strong>
+
+                    <span class="metric-state">
+                        <%= latestReading ? 'Latest reading' : 'Waiting for data' %>
+                    </span>
+
+                </article>
+
+            </section>
+
+
+            <section class="info-grid">
+
+                <article class="info-card">
+
+                    <span class="eyebrow">
+                        ASSIGNED DOCTOR
+                    </span>
+
+                    <h2><%= doctor ? doctor.name : 'Not Assigned' %></h2>
+
+                    <p>
+                        Doctor ID: <%= doctor ? doctor.doctorId : 'N/A' %>
+                    </p>
+
+                </article>
+
+
+                <article class="info-card">
+
+                    <span class="eyebrow">
+                        CONNECTION
+                    </span>
+
+                    <h2 id="connectionStatus">
+                        Connecting...
+                    </h2>
+
+                    <p>
+                        Real-time Socket.IO connection
+                    </p>
+
+                </article>
+
+            </section>
+
+
+            <div class="last-update">
+                Last update:
+                <span id="lastUpdate">Waiting...</span>
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <script>
+        window.initialReading = <%- JSON.stringify(latestReading ? { value1: latestReading.value1, value2: latestReading.value2, timestamp: latestReading.timestamp } : null).replace(/</g, '\\u003c') %>;
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/patient.js"></script>
+
+</body>
+
+</html>

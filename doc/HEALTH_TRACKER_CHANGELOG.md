@@ -5,6 +5,48 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-09-30 — Phase 2: Authentication & Identity Foundation
+- **Phase / Task:** PHASE 2 (`TASK-2.1` through `TASK-2.5`)
+- **Change:**
+  1. Installed authentication dependencies (`bcryptjs`, `jsonwebtoken`, `cookie-parser`) and established centralized auth configuration (`src/config/auth.js`) with environment variable validation for `JWT_SECRET`, `JWT_EXPIRES_IN`, salt rounds (>= 10), and environment-aware HTTP-only cookie settings.
+  2. Implemented password hashing and JWT utility suite (`src/utils/authUtils.js`) providing `hashPassword`, `comparePassword`, `generateToken`, and `verifyToken`.
+  3. Added `comparePassword` instance method to `src/models/User.js`.
+  4. Implemented `authController.js` and `authRoutes.js` (`POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`):
+     - `register`: Restricted strictly to Patient role; validates name, email format, password confirmation, minimum length, duplicate email in User & Patient collections, hardware device existence, `status === 'ACTIVE'`, and `patientId === null`; creates User + Patient records maintaining the 1:1 relational invariant, sets `doctorId = null`, binds device, and sets HTTP-only cookie.
+     - `login`: Supports login via email, username, or registered patient name; validates account status (`status === 'ACTIVE'`), compares bcrypt password hash, generates minimal JWT payload (`userId`, `role`, `profileId`), and sets secure HTTP-only cookie.
+     - `logout`: Clears authentication cookies without deleting database records or releasing devices.
+  5. Implemented reusable authentication middleware (`src/middleware/authMiddleware.js`) extracting tokens from HTTP-only cookies (or Authorization header), verifying signature, and attaching active `req.user`.
+  6. Created server-rendered EJS views for login (`/login`) and patient registration (`/register`) matching the project's dark and burnt-orange UI theme.
+  7. Created idempotent Super Admin seeder (`src/seed/seedAdmin.js`) and updated main database seeder (`src/seed/seed.js`) with bcrypt password hashes.
+  8. Created comprehensive automated test suite (`tests/authValidation.test.js`) validating all 20 required authentication criteria.
+- **Reason:**
+  Establish secure, cryptographic identity management, session handling, and credential protection for patient enrollment and platform sign-in before building role-based authorization in Phase 3.
+- **Files Affected:**
+  - `package.json`, `package-lock.json`
+  - `.env`
+  - `src/config/auth.js`
+  - `src/config/database.js`
+  - `src/models/User.js`
+  - `src/utils/authUtils.js`
+  - `src/middleware/authMiddleware.js`
+  - `src/controllers/authController.js`
+  - `src/routes/authRoutes.js`
+  - `src/views/auth/login.ejs`
+  - `src/views/auth/register.ejs`
+  - `src/public/css/auth.css`
+  - `src/app.js`
+  - `src/seed/seedAdmin.js`
+  - `src/seed/seed.js`
+  - `tests/authValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/authValidation.test.js`: 20/20 tests passed.
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (regression).
+  - `node src/seed/seed.js`: seeded successfully with relational integrity.
+
 ### 2026-09-30 — Phase 1: IoT Automated Simulator
 - **Phase / Task:** PHASE 1 (`TASK-1.1`, `TASK-1.2`)
 - **Change:**

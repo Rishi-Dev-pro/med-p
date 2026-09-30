@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 10 |
+| **Tasks Completed** | 15 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 36 |
-| **Overall Completion** | 21.7% |
+| **Tasks Not Started** | 31 |
+| **Overall Completion** | 32.6% |
 
 ---
 
@@ -70,11 +70,11 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-2.1` | Add auth dependencies (`bcryptjs`, `jsonwebtoken`, `cookie-parser`) and environment secrets validation | `NOT_STARTED` | Phase 0 | `package.json`, `package-lock.json` | None (Not yet executed) | - | Security base packages |
-| `TASK-2.2` | Build Auth Controller with `register` (Patient only; validates device claim), `login` (email/username + pwd), and `logout` (clears cookie) | `NOT_STARTED` | `TASK-2.1` | `src/controllers/authController.js` | None (Not yet executed) | - | Issues HTTP-Only secure JWT |
-| `TASK-2.3` | Implement Auth routes (`POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`) | `NOT_STARTED` | `TASK-2.2` | `src/routes/authRoutes.js`, `src/app.js` | None (Not yet executed) | - | Public auth API endpoints |
-| `TASK-2.4` | Create database seeder for initial Super Admin credentials (`src/seed/seedAdmin.js`) | `NOT_STARTED` | `TASK-2.2` | `src/seed/seedAdmin.js` | None (Not yet executed) | - | Role `SUPER_ADMIN` with `profileId: null` |
-| `TASK-2.5` | Build server-rendered authentication views (Login form and Patient registration form with device field) | `NOT_STARTED` | `TASK-2.3` | `src/views/auth/login.ejs`, `src/views/auth/register.ejs` | None (Not yet executed) | - | Consistent burnt-orange aesthetic |
+| `TASK-2.1` | Add auth dependencies (`bcryptjs`, `jsonwebtoken`, `cookie-parser`) and environment secrets validation | `DONE` | Phase 0 | `package.json`, `src/config/auth.js`, `.env` | `node tests/authValidation.test.js` (Tests 1, 12, 13, 20 PASS) | 2026-09-30 | Installed and centralized in config/auth.js |
+| `TASK-2.2` | Build Auth Controller with `register` (Patient only; validates device claim), `login` (email/username/name + pwd), and `logout` (clears cookie) | `DONE` | `TASK-2.1` | `src/controllers/authController.js`, `src/utils/authUtils.js` | `node tests/authValidation.test.js` (Tests 3-11, 16-18 PASS) | 2026-09-30 | Issues HTTP-Only secure JWT, hashes passwords with bcrypt >= 10 |
+| `TASK-2.3` | Implement Auth routes (`POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`) | `DONE` | `TASK-2.2` | `src/routes/authRoutes.js`, `src/app.js` | `node tests/authValidation.test.js` (Tests 3, 8, 15, 16 PASS) | 2026-09-30 | Public auth API endpoints + token verification middleware |
+| `TASK-2.4` | Create database seeder for initial Super Admin credentials (`src/seed/seedAdmin.js`) | `DONE` | `TASK-2.2` | `src/seed/seedAdmin.js`, `src/seed/seed.js` | `node tests/authValidation.test.js` (Test 19 PASS) | 2026-09-30 | Role `SUPER_ADMIN` with `profileId: null`, idempotent execution |
+| `TASK-2.5` | Build server-rendered authentication views (Login form and Patient registration form with device field) | `DONE` | `TASK-2.3` | `src/views/auth/login.ejs`, `src/views/auth/register.ejs`, `src/public/css/auth.css` | Syntax checked, routes tested via app smoke test | 2026-09-30 | Consistent dark & burnt-orange design language |
 
 ---
 

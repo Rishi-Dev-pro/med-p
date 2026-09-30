@@ -254,14 +254,24 @@ runTest("9. Indexes: sparse unique and compound indexes are declared correctly",
 
     const userIndexes = User.schema.indexes();
     assert.ok(
-        hasIndex(userIndexes, { profileId: 1 }, { unique: true, sparse: true }),
-        "User schema must declare sparse unique index on profileId"
+        hasIndex(userIndexes, { profileId: 1 }, { unique: true }),
+        "User schema must declare unique index on profileId"
+    );
+    assert.deepStrictEqual(
+        userIndexes.find(([f]) => f.profileId === 1)[1].partialFilterExpression,
+        { profileId: { $type: "string" } },
+        "User profileId index must have partialFilterExpression"
     );
 
     const patientIndexes = Patient.schema.indexes();
     assert.ok(
-        hasIndex(patientIndexes, { deviceId: 1 }, { unique: true, sparse: true }),
-        "Patient schema must declare sparse unique index on deviceId"
+        hasIndex(patientIndexes, { deviceId: 1 }, { unique: true }),
+        "Patient schema must declare unique index on deviceId"
+    );
+    assert.deepStrictEqual(
+        patientIndexes.find(([f]) => f.deviceId === 1)[1].partialFilterExpression,
+        { deviceId: { $type: "string" } },
+        "Patient deviceId index must have partialFilterExpression"
     );
     assert.ok(
         hasIndex(patientIndexes, { doctorId: 1 }),
@@ -270,8 +280,13 @@ runTest("9. Indexes: sparse unique and compound indexes are declared correctly",
 
     const deviceIndexes = Device.schema.indexes();
     assert.ok(
-        hasIndex(deviceIndexes, { patientId: 1 }, { unique: true, sparse: true }),
-        "Device schema must declare sparse unique index on patientId"
+        hasIndex(deviceIndexes, { patientId: 1 }, { unique: true }),
+        "Device schema must declare unique index on patientId"
+    );
+    assert.deepStrictEqual(
+        deviceIndexes.find(([f]) => f.patientId === 1)[1].partialFilterExpression,
+        { patientId: { $type: "string" } },
+        "Device patientId index must have partialFilterExpression"
     );
 
     const readingIndexes = SensorReading.schema.indexes();

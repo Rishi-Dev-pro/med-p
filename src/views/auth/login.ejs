@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker — Portal Login</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <header class="auth-header">
+                <span class="auth-badge">Secure Telemetry</span>
+                <h1 class="auth-title">Portal Sign In</h1>
+                <p class="auth-subtitle">Access your clinical metrics and live telemetry</p>
+            </header>
+
+            <div id="authAlert" class="auth-alert"></div>
+
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label class="form-label" for="identifier">Email, Username, or Name</label>
+                    <input
+                        type="text"
+                        id="identifier"
+                        name="identifier"
+                        class="form-input"
+                        placeholder="e.g. pat1@example.com or patient_one"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="form-input"
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-primary">
+                    Sign In
+                </button>
+            </form>
+
+            <footer class="auth-footer">
+                <p>New patient? <a href="/register">Register with device ID</a></p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("loginForm");
+        const alertBox = document.getElementById("authAlert");
+        const submitBtn = document.getElementById("submitBtn");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            alertBox.className = "auth-alert";
+            alertBox.textContent = "";
+
+            const identifier = document.getElementById("identifier").value.trim();
+            const password = document.getElementById("password").value;
+
+            if (!identifier || !password) {
+                alertBox.className = "auth-alert error";
+                alertBox.textContent = "Please enter your identifier and password.";
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Authenticating...";
+
+            try {
+                const res = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identifier, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertBox.className = "auth-alert error";
+                    alertBox.textContent = data.message || "Authentication failed.";
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Sign In";
+                    return;
+                }
+
+                alertBox.className = "auth-alert success";
+                alertBox.textContent = "Login successful! Redirecting...";
+
+                setTimeout(() => {
+                    if (data.user && data.user.role === "PATIENT" && data.user.profileId) {
+                        window.location.href = `/patient/${data.user.profileId}`;
+                    } else if (data.user && data.user.role === "DOCTOR" && data.user.profileId) {
+                        window.location.href = `/doctor/${data.user.profileId}`;
+                    } else {
+                        window.location.href = "/";
+                    }
+                }, 600);
+            } catch (err) {
+                alertBox.className = "auth-alert error";
+                alertBox.textContent = "Connection error. Please try again.";
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Sign In";
+            }
+        });
+    </script>
+</body>
+</html>

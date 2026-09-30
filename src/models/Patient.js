@@ -54,7 +54,13 @@ const patientSchema = new mongoose.Schema(
 // Standard index for filtering patients by assigned doctor (allows null)
 patientSchema.index({ doctorId: 1 });
 
-// Sparse unique index: Enforces at most 1 patient assigned per device; unassigned patients have deviceId = null
-patientSchema.index({ deviceId: 1 }, { unique: true, sparse: true });
+// Unique partial index: Enforces at most 1 patient assigned per device; unassigned patients have deviceId = null
+patientSchema.index(
+    { deviceId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { deviceId: { $type: "string" } }
+    }
+);
 
 module.exports = mongoose.model("Patient", patientSchema);

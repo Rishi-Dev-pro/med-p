@@ -1,0 +1,628 @@
+/* ==========================================
+   DOCTOR DASHBOARD
+   ========================================== */
+
+.page-subtitle {
+    margin-top: 6px;
+
+    color: var(--muted);
+
+    font-size: 14px;
+}
+
+
+/* ==========================================
+   DOCTOR STATUS
+   ========================================== */
+
+.doctor-status {
+
+    padding: 11px 16px;
+
+    border-radius: 999px;
+
+    border: 1px solid
+        rgba(105, 212, 139, 0.2);
+
+    color: #69D48B;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+}
+
+
+/* ==========================================
+   STAT GRID
+   ========================================== */
+
+.doctor-stats {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 34px;
+}
+
+
+.doctor-stat {
+
+    min-height: 155px;
+
+    padding: 25px;
+
+    border-radius: 20px;
+
+    border: 1px solid var(--border);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 244, 214, 0.06),
+            rgba(255, 244, 214, 0.015)
+        );
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease;
+}
+
+
+.doctor-stat:hover {
+
+    transform:
+        translateY(-4px);
+
+    border-color:
+        rgba(252, 108, 38, 0.3);
+}
+
+
+.doctor-stat > span {
+
+    color: var(--muted);
+
+    font-size: 10px;
+
+    letter-spacing: 0.14em;
+
+    font-weight: 700;
+}
+
+
+.doctor-stat strong {
+
+    font-size: 40px;
+
+    letter-spacing: -0.05em;
+
+    color: var(--vanilla);
+}
+
+
+.doctor-stat small {
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+.accent-stat strong {
+
+    color: var(--burnt-orange);
+
+}
+
+
+/* ==========================================
+   SECTIONS
+   ========================================== */
+
+.monitor-section,
+.activity-section {
+
+    margin-top: 25px;
+}
+
+
+.section-heading {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-end;
+
+    margin-bottom: 18px;
+}
+
+
+.section-heading h2 {
+
+    margin-top: 7px;
+
+    font-size: 24px;
+
+    letter-spacing: -0.03em;
+}
+
+
+.live-pill {
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 8px 13px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(105, 212, 139, 0.08);
+
+    color: #69D48B;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.1em;
+}
+
+
+/* ==========================================
+   PATIENT GRID
+   ========================================== */
+
+.patient-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+}
+
+
+/* ==========================================
+   PATIENT CARD
+   ========================================== */
+
+.patient-card {
+
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 25px;
+
+    border-radius: 22px;
+
+    border: 1px solid var(--border);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 244, 214, 0.055),
+            rgba(255, 244, 214, 0.015)
+        );
+
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease;
+}
+
+
+.patient-card:hover {
+
+    transform:
+        translateY(-3px);
+
+    border-color:
+        rgba(252, 108, 38, 0.3);
+}
+
+
+.patient-card::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 160px;
+
+    height: 160px;
+
+    right: -70px;
+
+    top: -70px;
+
+    border-radius: 50%;
+
+    background:
+        var(--burnt-orange);
+
+    opacity: 0.07;
+
+    filter: blur(25px);
+}
+
+
+/* ==========================================
+   PATIENT HEADER
+   ========================================== */
+
+.patient-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin-bottom: 25px;
+}
+
+
+.patient-identity {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+}
+
+
+.patient-avatar {
+
+    width: 44px;
+
+    height: 44px;
+
+    border-radius: 14px;
+
+    display: grid;
+
+    place-items: center;
+
+    background:
+        rgba(252, 108, 38, 0.13);
+
+    color:
+        var(--burnt-orange);
+
+    font-weight: 800;
+}
+
+
+.patient-name {
+
+    font-weight: 700;
+}
+
+
+.patient-id {
+
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+.patient-live {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    color: #69D48B;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+}
+
+
+/* ==========================================
+   READING GRID
+   ========================================== */
+
+.reading-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+
+.reading-box {
+
+    padding: 16px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(0, 0, 0, 0.16);
+
+    border:
+        1px solid
+        rgba(255, 244, 214, 0.06);
+}
+
+
+.reading-box span {
+
+    display: block;
+
+    color: var(--muted);
+
+    font-size: 9px;
+
+    letter-spacing: 0.12em;
+}
+
+
+.reading-box strong {
+
+    display: block;
+
+    margin-top: 7px;
+
+    font-size: 28px;
+
+    color: var(--vanilla);
+}
+
+
+/* ==========================================
+   DEVICE INFO
+   ========================================== */
+
+.patient-device {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-top: 17px;
+
+    padding-top: 15px;
+
+    border-top:
+        1px solid var(--border);
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+/* ==========================================
+   EMPTY STATE
+   ========================================== */
+
+.empty-state {
+
+    grid-column:
+        1 / -1;
+
+    min-height: 240px;
+
+    padding: 40px;
+
+    border-radius: 22px;
+
+    border: 1px dashed
+        rgba(255, 244, 214, 0.12);
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    text-align: center;
+}
+
+
+.empty-icon {
+
+    width: 50px;
+
+    height: 50px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 15px;
+
+    background:
+        rgba(252, 108, 38, 0.1);
+
+    color:
+        var(--burnt-orange);
+
+    font-size: 25px;
+
+    margin-bottom: 15px;
+}
+
+
+.empty-state h3 {
+
+    font-size: 17px;
+}
+
+
+.empty-state p {
+
+    max-width: 320px;
+
+    margin-top: 7px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* ==========================================
+   ACTIVITY FEED
+   ========================================== */
+
+.activity-feed {
+
+    border:
+
+        1px solid var(--border);
+
+    border-radius: 20px;
+
+    overflow: hidden;
+
+    background:
+        rgba(255, 244, 214, 0.025);
+}
+
+
+.activity-item {
+
+    display: grid;
+
+    grid-template-columns:
+        40px 1fr auto;
+
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 17px 20px;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+
+.activity-item:last-child {
+
+    border-bottom: none;
+}
+
+
+.activity-icon {
+
+    width: 35px;
+
+    height: 35px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 10px;
+
+    background:
+        rgba(252, 108, 38, 0.1);
+
+    color:
+        var(--burnt-orange);
+
+    font-size: 12px;
+}
+
+
+.activity-title {
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+.activity-description {
+
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+
+.activity-time {
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+
+.activity-empty {
+
+    padding: 30px;
+
+    text-align: center;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 1100px) {
+
+    .doctor-stats {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 750px) {
+
+    .doctor-stats {
+
+        grid-template-columns: 1fr;
+    }
+
+    .patient-grid {
+
+        grid-template-columns: 1fr;
+    }
+
+}

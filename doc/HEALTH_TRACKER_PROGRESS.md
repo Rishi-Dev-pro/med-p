@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 2: Authentication & Identity Foundation** (Ready to start) |
-| **Current Task** | `TASK-2.1: User registration and login endpoint architecture` |
-| **Overall Progress** | **21.7%** (10 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Automated Simulator** (2 / 20) |
+| **Current Phase** | **PHASE 3: Role-Based Authorization & Socket Auth** (Ready to start) |
+| **Current Task** | `TASK-3.1: Server-side RBAC and roleMiddleware implementation` |
+| **Overall Progress** | **32.6%** (15 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation** (3 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-2.1` to `TASK-2.5` (Phase 2 deliverables) |
-| **Verification Status** | Phase 1 verified: `tests/iotSimulator.test.js` passed 10/10 tests; Phase 0 verified: `tests/schemaValidation.test.js` passed 10/10 tests |
-| **Last Updated Timestamp** | 2026-09-30 22:52:00 IST |
+| **Upcoming Tasks** | `TASK-3.1` to `TASK-3.3` (Phase 3 deliverables) |
+| **Verification Status** | Phase 2 verified: `tests/authValidation.test.js` passed 20/20 tests; Phase 1: 10/10 PASS; Phase 0: 10/10 PASS |
+| **Last Updated Timestamp** | 2026-09-30 23:25:00 IST |
 
 ---
 
@@ -29,8 +29,8 @@ gantt
     Architecture & Models Freeze       :done, p0, 2026-09-30, 1d
     section Phase 1-3: Core Foundation
     IoT Simulator                     :done, p1, 2026-09-30, 1d
-    Authentication (JWT/Bcrypt)       :active, p2, 2026-10-01, 2d
-    RBAC & Socket Security            :p3, after p2, 2d
+    Authentication (JWT/Bcrypt)       :done, p2, 2026-09-30, 1d
+    RBAC & Socket Security            :active, p3, 2026-10-01, 2d
     section Phase 4-8: Admin & Inventory
     Super Admin Portal Skeleton       :p4, after p3, 2d
     Hardware Device Management        :p5, after p4, 2d
@@ -61,7 +61,7 @@ gantt
 | :---: | :--- | :---: | :---: | :---: |
 | **0** | Architecture & Database Schema Freeze | `DONE` | 8 / 8 | 100% |
 | **1** | IoT Automated Simulator | `DONE` | 2 / 2 | 100% |
-| **2** | Authentication & Identity Foundation | `NOT_STARTED` | 0 / 5 | 0% |
+| **2** | Authentication & Identity Foundation | `DONE` | 5 / 5 | 100% |
 | **3** | Role-Based Authorization & Socket Auth | `NOT_STARTED` | 0 / 3 | 0% |
 | **4** | Super Admin Foundation & Core Dashboard | `NOT_STARTED` | 0 / 3 | 0% |
 | **5** | Hardware Device Management | `NOT_STARTED` | 0 / 3 | 0% |
@@ -83,28 +83,27 @@ gantt
 ---
 
 ## KNOWN DISCREPANCIES (ACTUAL CODEBASE VS FROZEN ROADMAP)
-*Updated following Phase 1 completion:*
+*Updated following Phase 2 completion:*
 
-1. **Resolved in Phase 0 & Phase 1:**
-   - `User` model created (`src/models/User.js`) with role/status enums and sparse unique `profileId`.
-   - `ActivityLog` model created (`src/models/ActivityLog.js`) with audit actions, actor/target types, and compound indexes.
-   - Centralized system constants formalized (`src/config/constants.js`).
-   - `Device.js` formalized with sparse unique index on `patientId`, `resetCount`, `lastSeen`, and case normalizer.
-   - `Patient.js` formalized with `userId`, `email`, `deviceId` (sparse unique), and nullable `doctorId`.
-   - `Doctor.js` formalized with `userId`, `email`, `status`, `phone`, `specialization`.
-   - `SensorReading.js` formalized with nullable `doctorId` and compound indexes `{ patientId: 1, timestamp: -1 }`, `{ deviceId: 1, timestamp: -1 }`, `{ doctorId: 1, timestamp: -1 }`.
-   - Ingestion route (`src/routes/iotRoutes.js`) returns HTTP 201 Created on valid write, returns 404 for unregistered device, returns 403 for inactive device, tolerates `patient.doctorId === null`, and safely guards Socket.IO emission.
-   - Automated multi-device headless simulator implemented (`tests/iotSimulator.js`) with CLI arguments, graceful shutdown, smooth random-walk telemetry, and failure resilience.
+1. **Resolved in Phases 0, 1, and 2:**
+   - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
+   - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
+   - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
+   - Secure authentication foundation implemented with `bcryptjs` password hashing (salt rounds >= 10) and `jsonwebtoken` issuance (`src/utils/authUtils.js`, `src/config/auth.js`).
+   - Patient registration endpoint (`POST /api/auth/register`) with device validation (existence, active status, unassigned state).
+   - Unified login endpoint (`POST /api/auth/login`) supporting email, username, or patient name with account status enforcement.
+   - Logout endpoint (`POST /api/auth/logout`) clearing HTTP-only authentication cookies.
+   - Reusable authentication middleware (`src/middleware/authMiddleware.js`) extracting JWT from cookies or headers and verifying active status.
+   - Server-rendered EJS views for login (`/login`) and registration (`/register`) with burnt-orange dark theme styling.
+   - Super Admin account seeder (`src/seed/seedAdmin.js`, `src/seed/seed.js`) with idempotent execution.
 
-2. **Route & Security Discrepancies (Scheduled for Phases 2 & 3):**
-   - Authentication routes (`/api/auth`) and JWT cookie issuance do not exist yet (Phase 2).
-   - Dashboard routes (`src/routes/dashboardRoutes.js`) are unauthenticated single-page endpoints relying on URL params with no JWT verification or server-side RBAC (Phases 2 & 3).
-   - Socket.IO server (`src/server.js`) accepts unauthenticated handshake connections and client-emitted `join-room` events with arbitrary claims (Phase 3).
-   - Admin routes and views do not exist yet (Phase 4).
+2. **Route & Security Discrepancies (Scheduled for Phases 3 & 4):**
+   - Dashboard routes (`src/routes/dashboardRoutes.js`) and Socket.IO server (`src/server.js`) await Phase 3 role-based authorization (RBAC) and Socket.IO handshake JWT authentication.
+   - Super Admin portal and doctor management endpoints await Phase 4 & Phase 7.
 
 ---
 
 ## NEXT IMMEDIATE ACTIONS
-1. Commit Phase 1 implementation and push to GitHub.
-2. Await instruction to start Phase 2.
-3. In Phase 2: Implement User registration and login endpoint architecture (`TASK-2.1` to `TASK-2.5`) with bcrypt and JWT.
+1. Commit Phase 2 implementation and push to GitHub.
+2. Await instruction to start Phase 3.
+3. In Phase 3: Implement server-side RBAC middleware (`roleMiddleware.js`), Socket.IO handshake JWT authentication, and protected route matrix (`TASK-3.1` to `TASK-3.3`).

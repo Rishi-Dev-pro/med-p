@@ -48,8 +48,21 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// Sparse unique index on profileId: multiple SUPER_ADMIN users can have profileId: null,
+// Unique partial index on profileId: multiple SUPER_ADMIN users can have profileId: null,
 // while doctorId / patientId must be globally unique across users.
-userSchema.index({ profileId: 1 }, { unique: true, sparse: true });
+userSchema.index(
+    { profileId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { profileId: { $type: "string" } }
+    }
+);
+
+// Method to verify candidate password against stored hash
+userSchema.methods.comparePassword = async function (candidatePassword) {
+    if (!this.passwordHash) return false;
+    const bcrypt = require("bcryptjs");
+    return bcrypt.compare(candidatePassword, this.passwordHash);
+};
 
 module.exports = mongoose.model("User", userSchema);

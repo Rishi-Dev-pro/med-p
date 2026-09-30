@@ -44,8 +44,14 @@ const deviceSchema = new mongoose.Schema(
     }
 );
 
-// Sparse unique index: Enforces at most 1 device per patient; unassigned devices have patientId = null
-deviceSchema.index({ patientId: 1 }, { unique: true, sparse: true });
+// Unique partial index: Enforces at most 1 device per patient; unassigned devices have patientId = null
+deviceSchema.index(
+    { patientId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { patientId: { $type: "string" } }
+    }
+);
 
 // Standard index for fast filtering of active/inactive devices
 deviceSchema.index({ status: 1 });

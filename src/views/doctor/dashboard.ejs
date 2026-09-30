@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>HealthTrack — Doctor</title>
+
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/doctor.css">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <!-- ==========================================
+         SIDEBAR
+         ========================================== -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-mark">
+                H
+            </div>
+
+            <div>
+
+                <strong>HealthTrack</strong>
+
+                <span>
+                    Clinical Portal
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <nav>
+
+    <a
+        href="#overview"
+        class="active"
+    >
+        Overview
+    </a>
+
+    <a href="#patients">
+        Patients
+    </a>
+
+    <a href="#live-monitor">
+        Live Monitor
+    </a>
+
+    <a href="#activity">
+        History
+    </a>
+
+    <a href="#activity">
+        Alerts
+    </a>
+
+</nav>
+
+
+        <div class="sidebar-footer">
+
+            <span class="status-dot"></span>
+
+            Monitoring System Online
+
+        </div>
+
+    </aside>
+
+
+    <!-- ==========================================
+         MAIN CONTENT
+         ========================================== -->
+
+    <main
+    class="main-content"
+    id="overview"
+>
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+            <div>
+
+                <span class="eyebrow">
+                    DOCTOR DASHBOARD
+                </span>
+
+                <h1>
+                    Good evening, <%= doctor.name %>
+                </h1>
+
+                <p class="page-subtitle">
+                    Real-time patient monitoring
+                </p>
+
+            </div>
+
+
+            <div class="doctor-status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    SYSTEM LIVE
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <!-- ==========================================
+             STAT CARDS
+             ========================================== -->
+
+        <section class="doctor-stats">
+
+            <article class="doctor-stat">
+
+                <span>
+                    TOTAL PATIENTS
+                </span>
+
+                <strong id="totalPatients">
+                    0
+                </strong>
+
+                <small>
+                    Assigned patients
+                </small>
+
+            </article>
+
+
+            <article class="doctor-stat">
+
+                <span>
+                    ACTIVE DEVICES
+                </span>
+
+                <strong id="activeDevices">
+                    0
+                </strong>
+
+                <small>
+                    Currently transmitting
+                </small>
+
+            </article>
+
+
+            <article class="doctor-stat">
+
+                <span>
+                    LIVE READINGS
+                </span>
+
+                <strong id="liveReadings">
+                    0
+                </strong>
+
+                <small>
+                    Received this session
+                </small>
+
+            </article>
+
+
+            <article class="doctor-stat accent-stat">
+
+                <span>
+                    SYSTEM STATUS
+                </span>
+
+                <strong id="systemStatus">
+                    CONNECTING...
+                </strong>
+
+                <small id="systemStatusSub">
+                    Establishing connection
+                </small>
+
+            </article>
+
+        </section>
+
+
+        <!-- ==========================================
+             PATIENT MONITOR
+             ========================================== -->
+
+        <section
+    class="monitor-section"
+    id="patients"
+>
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        LIVE MONITOR
+                    </span>
+
+                    <h2>
+                        Patient Network
+                    </h2>
+
+                </div>
+
+                <span
+                    class="live-pill"
+                >
+
+                    <span class="status-dot"></span>
+
+                    REAL-TIME
+
+                </span>
+
+            </div>
+
+
+            <div
+                id="patientGrid"
+                class="patient-grid"
+            >
+
+                <!-- Patient cards will be inserted here -->
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        +
+                    </div>
+
+                    <h3>
+                        Waiting for patient data
+                    </h3>
+
+                    <p>
+                        Live patient readings will
+                        appear here automatically.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==========================================
+             ACTIVITY
+             ========================================== -->
+
+        <section
+    class="activity-section"
+    id="activity"
+>
+
+            <div class="section-heading" id="live-monitor">
+
+                <div>
+
+                    <span class="eyebrow">
+                        SYSTEM ACTIVITY
+                    </span>
+
+                    <h2>
+                        Recent Readings
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="activityFeed"
+                class="activity-feed"
+            >
+
+                <div class="activity-empty">
+
+                    No readings received yet.
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+<script>
+    window.initialPatients = <%- JSON.stringify(patients).replace(/</g, '\\u003c') %>;
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script src="/js/doctor.js"></script>
+
+
+
+</body>
+
+</html>

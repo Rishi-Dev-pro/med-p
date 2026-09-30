@@ -28,13 +28,30 @@ const seedDatabase = async () => {
 
         console.log("Existing prototype data cleared.");
 
+        const { hashPassword } = require("../utils/authUtils");
+        const defaultDoctorPassword = await hashPassword("Doctor@123");
+        const defaultPatientPassword = await hashPassword("Patient@123");
+        const defaultAdminPassword = await hashPassword("Admin@12345");
+
+        // -------------------------
+        // Super Admin User
+        // -------------------------
+        const userAdmin = await User.create({
+            username: "admin",
+            email: "admin@healthtracker.local",
+            passwordHash: defaultAdminPassword,
+            role: ROLES.SUPER_ADMIN,
+            profileId: null,
+            status: ACCOUNT_STATUS.ACTIVE
+        });
+
         // -------------------------
         // Users for Doctors
         // -------------------------
         const userDoc1 = await User.create({
             username: "dr_sharma",
             email: "sharma@example.com",
-            passwordHash: "$2a$10$demoHashedPasswordPlaceHolder001",
+            passwordHash: defaultDoctorPassword,
             role: ROLES.DOCTOR,
             profileId: "DOC-001",
             status: ACCOUNT_STATUS.ACTIVE
@@ -43,7 +60,7 @@ const seedDatabase = async () => {
         const userDoc2 = await User.create({
             username: "dr_roy",
             email: "roy@example.com",
-            passwordHash: "$2a$10$demoHashedPasswordPlaceHolder002",
+            passwordHash: defaultDoctorPassword,
             role: ROLES.DOCTOR,
             profileId: "DOC-002",
             status: ACCOUNT_STATUS.ACTIVE
@@ -55,7 +72,7 @@ const seedDatabase = async () => {
         const userPat1 = await User.create({
             username: "patient_one",
             email: "pat1@example.com",
-            passwordHash: "$2a$10$demoHashedPasswordPlaceHolder003",
+            passwordHash: defaultPatientPassword,
             role: ROLES.PATIENT,
             profileId: "PAT-001",
             status: ACCOUNT_STATUS.ACTIVE
@@ -64,13 +81,13 @@ const seedDatabase = async () => {
         const userPat2 = await User.create({
             username: "patient_two",
             email: "pat2@example.com",
-            passwordHash: "$2a$10$demoHashedPasswordPlaceHolder004",
+            passwordHash: defaultPatientPassword,
             role: ROLES.PATIENT,
             profileId: "PAT-002",
             status: ACCOUNT_STATUS.ACTIVE
         });
 
-        console.log("Users created successfully.");
+        console.log("Users (Admin, Doctors, Patients) created successfully with bcrypt hashes.");
 
         // -------------------------
         // Doctors
