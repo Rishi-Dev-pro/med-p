@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Super Admin Doctors</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+    <%- include("partials/sidebar", { activePage, user }) %>
+
+    <div class="admin-main">
+        <%- include("partials/topbar", { 
+            pageTitle: "Doctors Directory", 
+            pageSubtitle: "Physician registry, specialties, and clinical patient loads",
+            user 
+        }) %>
+
+        <main class="admin-content-body">
+            <!-- Phase 7 Foundation Notice -->
+            <div class="foundation-banner">
+                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+                <p>
+                    <strong>Read-Only Clinical Registry:</strong> Active physician directory sourced directly from MongoDB. Full Doctor Provisioning, Credential Reset, and Suspension controls will be activated in <strong>Phase 7 (Doctor Management)</strong>.
+                </p>
+            </div>
+
+            <section class="section-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Physician Directory</h2>
+                    <span class="panel-badge"><%= doctors ? doctors.length : 0 %> Doctors</span>
+                </div>
+
+                <% if (!doctors || doctors.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍⚕️</div>
+                        <h3>No physicians registered</h3>
+                        <p>No doctor accounts currently exist in the database. Clinical accounts will appear here once provisioned.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Specialization</th>
+                                    <th>Status</th>
+                                    <th>Assigned Patients</th>
+                                    <th>Enrolled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% doctors.forEach(doc => { %>
+                                    <tr>
+                                        <td class="id-cell"><%= doc.doctorId %></td>
+                                        <td><strong><%= doc.name %></strong></td>
+                                        <td><%= doc.email %></td>
+                                        <td><%= doc.specialty %></td>
+                                        <td>
+                                            <span class="status-pill <%= doc.status === 'ACTIVE' ? 'active-pill' : 'inactive-pill' %>">
+                                                <%= doc.status %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong><%= doc.assignedPatientCount %></strong>
+                                            <span class="metric-sub">assigned</span>
+                                        </td>
+                                        <td><%= doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "—" %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

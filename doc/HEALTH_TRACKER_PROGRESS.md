@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 4: Super Admin Foundation & Core Dashboard** (Phase 3 Completed) |
-| **Current Task** | `TASK-4.1: Build Admin Controller and routes guarded by requireRole(['SUPER_ADMIN'])` |
-| **Overall Progress** | **39.1%** (18 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth** (4 / 20) |
+| **Current Phase** | **PHASE 5: Hardware Device Management** (Phase 4 Completed) |
+| **Current Task** | `TASK-5.1: Implement Device Inventory API` |
+| **Overall Progress** | **45.7%** (21 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation** (5 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-4.1` to `TASK-4.3` (Phase 4 deliverables) |
-| **Verification Status** | Phase 3 verified: `tests/rbacValidation.test.js` passed 24/24 tests; Phase 2: 20/20 PASS; Phase 1: 10/10 PASS; Phase 0: 10/10 PASS (64/64 Total PASS) |
-| **Last Updated Timestamp** | 2026-09-30 23:40:00 IST |
+| **Upcoming Tasks** | `TASK-5.1` to `TASK-5.3` (Phase 5 deliverables) |
+| **Verification Status** | Phase 4 verified: `tests/adminPortalValidation.test.js` passed 20/20 tests; Phase 3: 24/24 PASS; Phase 2: 20/20 PASS; Phase 1: 10/10 PASS; Phase 0: 10/10 PASS (84/84 Total PASS) |
+| **Last Updated Timestamp** | 2026-09-30 23:55:00 IST |
 
 ---
 
@@ -32,8 +32,8 @@ gantt
     Authentication (JWT/Bcrypt)       :done, p2, 2026-09-30, 1d
     RBAC & Socket Security            :done, p3, 2026-09-30, 1d
     section Phase 4-8: Admin & Inventory
-    Super Admin Portal Skeleton       :active, p4, 2026-10-01, 2d
-    Hardware Device Management        :p5, after p4, 2d
+    Super Admin Portal Skeleton       :done, p4, 2026-09-30, 1d
+    Hardware Device Management        :active, p5, 2026-10-01, 2d
     Patient Registration & Claiming   :p6, after p5, 2d
     Doctor Provisioning & Lifecycle   :p7, after p4, 2d
     Patient Doctor Assignment Engine  :p8, after p7, 2d
@@ -63,7 +63,7 @@ gantt
 | **1** | IoT Automated Simulator | `DONE` | 2 / 2 | 100% |
 | **2** | Authentication & Identity Foundation | `DONE` | 5 / 5 | 100% |
 | **3** | Role-Based Authorization & Socket Auth | `DONE` | 3 / 3 | 100% |
-| **4** | Super Admin Foundation & Core Dashboard | `NOT_STARTED` | 0 / 3 | 0% |
+| **4** | Super Admin Foundation & Core Dashboard | `DONE` | 3 / 3 | 100% |
 | **5** | Hardware Device Management | `NOT_STARTED` | 0 / 3 | 0% |
 | **6** | Patient Registration & Device Claiming | `NOT_STARTED` | 0 / 2 | 0% |
 | **7** | Doctor Management (Admin Provisioning) | `NOT_STARTED` | 0 / 4 | 0% |
@@ -97,7 +97,7 @@ gantt
    - Server-rendered EJS views for login (`/login`) and registration (`/register`) with burnt-orange dark theme styling.
    - Super Admin account seeder (`src/seed/seedAdmin.js`, `src/seed/seed.js`) with idempotent execution.
 
-1. **Resolved in Phases 0, 1, 2, and 3:**
+1. **Resolved in Phases 0, 1, 2, 3, and 4:**
    - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
    - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
    - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
@@ -105,16 +105,17 @@ gantt
    - Server-side RBAC middleware (`src/middleware/roleMiddleware.js`) enforcing `requireRole`, `requirePatientOwnership`, and `requireDoctorOwnership`.
    - Dashboard routes (`/patient/:patientId` and `/doctor/:doctorId`) strictly protected against cross-patient and cross-doctor data enumeration.
    - Socket.IO cryptographic handshake JWT authentication via `io.use()` validating active account status and rejecting suspended/unauthenticated connections.
-   - Socket.IO room joining authorization isolating `patient:<id>` and `doctor:<id>` telemetry strictly by server-verified DB relationships and decoupling historical readings from reassignment.
-   - Foundation admin authorization established via `requireRole('SUPER_ADMIN')` on `/api/admin/status`.
+   - Super Admin portal and layout (`/admin`, `/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`) implemented with reusable EJS sidebar/topbar and live aggregated MongoDB metrics.
+   - Read-only management foundation pages established for doctors, patients, devices, and activity stream.
 
-2. **Route & Security Discrepancies (Scheduled for Phase 4+):**
-   - Super Admin portal and doctor management endpoints await Phase 4 & Phase 7.
-   - Device inventory lifecycle and reset operations await Phase 5.
+2. **Route & Operational Discrepancies (Scheduled for Phase 5+):**
+   - Device inventory lifecycle, activate/deactivate, and atomic reset operations await Phase 5.
+   - Doctor creation, credential generation, and suspension management await Phase 7.
+   - Patient ↔ doctor assignment engine and UI await Phase 8.
 
 ---
 
 ## NEXT IMMEDIATE ACTIONS
-1. Commit Phase 3 implementation and push to GitHub.
-2. Await instruction to start Phase 4 (Super Admin Foundation & Core Dashboard).
-3. In Phase 4: Implement Super Admin Controller, overview metric aggregators, and dark burnt-orange administrative layouts (`TASK-4.1` to `TASK-4.3`).
+1. Commit Phase 4 implementation and push to GitHub.
+2. Await instruction to start Phase 5 (Hardware Device Management).
+3. In Phase 5: Implement Hardware Device Inventory API, atomic reset engine, and device management UI (`TASK-5.1` to `TASK-5.3`).

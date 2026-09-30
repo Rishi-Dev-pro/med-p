@@ -1,0 +1,25 @@
+<!-- ==========================================
+     SUPER ADMIN TOP BAR
+     ========================================== -->
+<header class="admin-topbar">
+    <div class="topbar-title-group">
+        <h1 class="page-title"><%= pageTitle %></h1>
+        <p class="page-subtitle"><%= pageSubtitle %></p>
+    </div>
+
+    <div class="topbar-actions">
+        <div class="system-status-indicator">
+            <span class="status-pulse"></span>
+            <span>SYSTEM ONLINE</span>
+        </div>
+
+        <div class="admin-profile-badge">
+            <span class="status-pill active-pill">ACTIVE</span>
+            <span class="admin-name"><%= user.username %></span>
+        </div>
+
+        <a href="/admin/logout" class="topbar-logout-link" title="Sign out">
+            Logout
+        </a>
+    </div>
+</header>

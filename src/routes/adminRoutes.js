@@ -2,24 +2,31 @@ const express = require("express");
 const { authenticate } = require("../middleware/authMiddleware");
 const { requireRole } = require("../middleware/roleMiddleware");
 const { ROLES } = require("../config/constants");
+const adminController = require("../controllers/adminController");
 
 const router = express.Router();
 
 /**
- * Super Admin Authorization Foundation Route
- * Health Tracker — Phase 3
- * Accessible exclusively to users possessing the SUPER_ADMIN role verified via JWT.
+ * Super Admin Protected HTML & API Routes
+ * Health Tracker — Phase 4: Super Admin Portal & Layout
+ *
+ * Every route requires valid JWT authentication and role === 'SUPER_ADMIN'.
  */
-router.get("/status", authenticate, requireRole(ROLES.SUPER_ADMIN), (req, res) => {
-    return res.status(200).json({
-        success: true,
-        message: "Admin authorization verified",
-        admin: {
-            userId: req.user.userId,
-            username: req.user.username,
-            role: req.user.role
-        }
-    });
-});
+
+// Super Admin Overview / Dashboard
+router.get("/", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
+router.get("/overview", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
+
+// Super Admin Management Foundations (Read-Only)
+router.get("/doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getDoctors);
+router.get("/patients", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getPatients);
+router.get("/devices", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getDevices);
+router.get("/activity", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getActivity);
+
+// Super Admin Logout (Supports GET and POST)
+router.all("/logout", adminController.logout);
+
+// Super Admin Authorization Status (Preserves Phase 3 API Contract)
+router.get("/status", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getStatus);
 
 module.exports = router;

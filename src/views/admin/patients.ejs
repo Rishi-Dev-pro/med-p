@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Super Admin Patients</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+    <%- include("partials/sidebar", { activePage, user }) %>
+
+    <div class="admin-main">
+        <%- include("partials/topbar", { 
+            pageTitle: "Patient Registry", 
+            pageSubtitle: "Enrolled platform patients, hardware bindings, and clinical assignments",
+            user 
+        }) %>
+
+        <main class="admin-content-body">
+            <!-- Phase 8 Foundation Notice -->
+            <div class="foundation-banner">
+                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+                <p>
+                    <strong>Read-Only Patient Registry:</strong> Live patient records populated from MongoDB. Interactive doctor assignment, patient reassignment, and unbind triggers are scheduled for <strong>Phase 8 (Patient ↔ Doctor Assignment Engine)</strong>.
+                </p>
+            </div>
+
+            <section class="section-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Enrolled Patients</h2>
+                    <span class="panel-badge"><%= patients ? patients.length : 0 %> Patients</span>
+                </div>
+
+                <% if (!patients || patients.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>No patients found</h3>
+                        <p>No patients are currently registered in the database. When patients register, their records will appear here.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Demographics</th>
+                                    <th>Assigned Doctor</th>
+                                    <th>Linked Device</th>
+                                    <th>Account Status</th>
+                                    <th>Enrolled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% patients.forEach(p => { %>
+                                    <tr>
+                                        <td class="id-cell"><%= p.patientId %></td>
+                                        <td><strong><%= p.name %></strong></td>
+                                        <td><%= p.email %></td>
+                                        <td><%= p.age %> yrs · <%= p.gender || "unspecified" %></td>
+                                        <td>
+                                            <% if (p.doctorId) { %>
+                                                <span class="id-cell"><%= p.doctorId %></span>
+                                                <% if (p.doctorName) { %>
+                                                    <span class="metric-sub">(<%= p.doctorName %>)</span>
+                                                <% } %>
+                                            <% } else { %>
+                                                <span class="status-pill unassigned-pill">UNASSIGNED</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (p.deviceId) { %>
+                                                <span class="id-cell"><%= p.deviceId %></span>
+                                            <% } else { %>
+                                                <span class="status-pill unassigned-pill">UNASSIGNED</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <span class="status-pill <%= p.accountStatus === 'ACTIVE' ? 'active-pill' : 'suspended-pill' %>">
+                                                <%= p.accountStatus %>
+                                            </span>
+                                        </td>
+                                        <td><%= p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—" %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

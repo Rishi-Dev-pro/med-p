@@ -52,6 +52,7 @@ app.get("/register", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/admin", adminRoutes);
 app.use("/api/iot", iotRoutes);
 app.use("/", dashboardRoutes);
 

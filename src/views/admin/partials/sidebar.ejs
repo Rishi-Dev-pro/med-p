@@ -1,0 +1,49 @@
+<!-- ==========================================
+     SUPER ADMIN SIDEBAR
+     ========================================== -->
+<aside class="admin-sidebar">
+    <div class="admin-brand">
+        <div class="brand-mark">H</div>
+        <div>
+            <strong>HealthTrack</strong>
+            <span>Super Admin Portal</span>
+        </div>
+    </div>
+
+    <nav class="admin-nav">
+        <a href="/admin/overview" class="<%= activePage === 'overview' ? 'active' : '' %>">
+            <span class="nav-icon">📊</span>
+            <span>Overview</span>
+        </a>
+        <a href="/admin/doctors" class="<%= activePage === 'doctors' ? 'active' : '' %>">
+            <span class="nav-icon">👨‍⚕️</span>
+            <span>Doctors</span>
+        </a>
+        <a href="/admin/patients" class="<%= activePage === 'patients' ? 'active' : '' %>">
+            <span class="nav-icon">👥</span>
+            <span>Patients</span>
+        </a>
+        <a href="/admin/devices" class="<%= activePage === 'devices' ? 'active' : '' %>">
+            <span class="nav-icon">📟</span>
+            <span>Devices</span>
+        </a>
+        <a href="/admin/activity" class="<%= activePage === 'activity' ? 'active' : '' %>">
+            <span class="nav-icon">📋</span>
+            <span>Activity</span>
+        </a>
+    </nav>
+
+    <div class="admin-sidebar-footer">
+        <div class="admin-user-card">
+            <div class="user-avatar">A</div>
+            <div class="user-info">
+                <div class="user-name"><%= user.username || "Super Admin" %></div>
+                <div class="user-role">SUPER ADMIN</div>
+            </div>
+        </div>
+        <a href="/admin/logout" class="btn-logout" title="Sign out of administrative portal">
+            <span class="logout-icon">⎋</span>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>

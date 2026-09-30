@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 18 |
+| **Tasks Completed** | 21 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 28 |
-| **Overall Completion** | 39.1% |
+| **Tasks Not Started** | 25 |
+| **Overall Completion** | 45.7% |
 
 ---
 
@@ -96,9 +96,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-4.1` | Build Admin Controller and routes guarded by `requireRole(['SUPER_ADMIN'])` | `NOT_STARTED` | Phase 3 | `src/controllers/adminController.js`, `src/routes/adminRoutes.js`, `src/app.js` | None (Not yet executed) | - | Admin routing skeleton |
-| `TASK-4.2` | Implement `/admin/overview` metric aggregator (counts of doctors, patients, active/inactive devices, daily reading volume) | `NOT_STARTED` | `TASK-4.1` | `src/controllers/adminController.js` | None (Not yet executed) | - | Hydrates admin stats from MongoDB |
-| `TASK-4.3` | Create Super Admin base layout and overview EJS template | `NOT_STARTED` | `TASK-4.2` | `src/views/admin/layout.ejs`, `src/views/admin/overview.ejs`, `src/public/css/admin.css` | None (Not yet executed) | - | Dark burnt-orange theme |
+| `TASK-4.1` | Build Admin Controller and routes guarded by `requireRole(['SUPER_ADMIN'])` | `DONE` | Phase 3 | `src/controllers/adminController.js`, `src/routes/adminRoutes.js`, `src/app.js` | `node tests/adminPortalValidation.test.js` (Tests 1-8, 19, 20 PASS) | 2026-09-30 | Enforces authentication and SUPER_ADMIN role on `/admin/*` |
+| `TASK-4.2` | Implement `/admin/overview` metric aggregator (counts of doctors, patients, active/inactive devices, daily reading volume) | `DONE` | `TASK-4.1` | `src/controllers/adminController.js` | `node tests/adminPortalValidation.test.js` (Tests 9-14 PASS) | 2026-09-30 | Aggregates live MongoDB counts across patients, doctors, devices, users, readings |
+| `TASK-4.3` | Create Super Admin base layout and overview EJS template | `DONE` | `TASK-4.2` | `src/views/admin/*.ejs`, `src/views/admin/partials/*.ejs`, `src/public/css/admin.css` | `node tests/adminPortalValidation.test.js` (Tests 1, 5-8, 15, 16, 18 PASS) | 2026-09-30 | Reusable sidebar/topbar layout, overview dashboard, doctors, patients, devices, activity views, dark burnt-orange theme |
 
 ---
 

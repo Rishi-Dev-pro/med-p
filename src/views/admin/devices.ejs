@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Super Admin Devices</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+    <%- include("partials/sidebar", { activePage, user }) %>
+
+    <div class="admin-main">
+        <%- include("partials/topbar", { 
+            pageTitle: "Device Inventory", 
+            pageSubtitle: "Hardware sensor telemetry devices, binding status, and hardware reset counters",
+            user 
+        }) %>
+
+        <main class="admin-content-body">
+            <!-- Phase 5 Foundation Notice -->
+            <div class="foundation-banner">
+                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+                <p>
+                    <strong>Read-Only Hardware Inventory:</strong> Physical IoT devices indexed directly from MongoDB. Hardware provisioning, status toggles (Activate/Deactivate), atomic reset operations, and decommissioning controls will be implemented in <strong>Phase 5 (Hardware Device Management)</strong>.
+                </p>
+            </div>
+
+            <section class="section-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Hardware Telemetry Units</h2>
+                    <span class="panel-badge"><%= devices ? devices.length : 0 %> Devices</span>
+                </div>
+
+                <% if (!devices || devices.length === 0) { %>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📟</div>
+                        <h3>No devices found</h3>
+                        <p>No IoT devices have been registered in the hardware database yet. Devices will appear here once provisioned.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Device ID</th>
+                                    <th>Type</th>
+                                    <th>Hardware Status</th>
+                                    <th>Assigned Patient</th>
+                                    <th>Reset Count</th>
+                                    <th>Last Activity / Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% devices.forEach(d => { %>
+                                    <tr>
+                                        <td class="id-cell"><%= d.deviceId %></td>
+                                        <td><%= d.type %></td>
+                                        <td>
+                                            <span class="status-pill <%= (d.status === 'ACTIVE' || d.status === 'active') ? 'active-pill' : 'inactive-pill' %>">
+                                                <%= (d.status || 'ACTIVE').toUpperCase() %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (d.patientId) { %>
+                                                <span class="id-cell"><%= d.patientId %></span>
+                                                <% if (d.patientName) { %>
+                                                    <span class="metric-sub">(<%= d.patientName %>)</span>
+                                                <% } %>
+                                            <% } else { %>
+                                                <span class="status-pill unassigned-pill">UNASSIGNED (IN INVENTORY)</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <strong><%= d.resetCount %></strong>
+                                            <span class="metric-sub">resets</span>
+                                        </td>
+                                        <td><%= d.updatedAt ? new Date(d.updatedAt).toLocaleString() : (d.createdAt ? new Date(d.createdAt).toLocaleString() : "—") %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -5,6 +5,61 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-09-30 — Phase 4: Super Admin Portal & Layout
+- **Phase / Task:** PHASE 4 (`TASK-4.1`, `TASK-4.2`, `TASK-4.3`)
+- **Change:**
+  1. Implemented `src/controllers/adminController.js`:
+     - `getOverview`: Aggregates live system metrics from MongoDB (total patients, total doctors, total devices, active/inactive devices, assigned/unassigned devices, active/suspended users, total readings, today's readings, latest reading timestamp) alongside recent patients, doctors, and devices.
+     - `getDoctors`: Generates read-only clinical registry with doctor ID, name, email, specialization, status, assigned patient counts, and account status.
+     - `getPatients`: Generates read-only patient registry with patient ID, name, email, demographics, current doctor, linked device, and account status.
+     - `getDevices`: Generates read-only hardware inventory with device ID, type, status, assigned patient, and reset count.
+     - `getActivity`: Generates system activity event log stream with graceful empty-state handling.
+     - `logout`: Clears authentication cookies and redirects browser requests to `/login`.
+     - `getStatus`: Preserves Phase 3 API authorization status contract.
+  2. Updated `src/routes/adminRoutes.js` and `src/app.js`:
+     - Mounted `/admin` and `/api/admin` routes guarded by `authenticate` and `requireRole(ROLES.SUPER_ADMIN)`.
+     - Enforced strict denial for `PATIENT` and `DOCTOR` roles (403 Forbidden) and unauthenticated sessions (302 redirect for HTML / 401 for API).
+  3. Created reusable Super Admin EJS layout and views:
+     - `src/views/admin/partials/sidebar.ejs`: Branding, navigation links (Overview, Doctors, Patients, Devices, Activity), active state indicator, admin profile card, and logout button.
+     - `src/views/admin/partials/topbar.ejs`: Page title and subtitle, online indicator, admin identity badge, and topbar logout link.
+     - `src/views/admin/overview.ejs`: Summary metric cards and recent records tables.
+     - `src/views/admin/doctors.ejs`: Read-only doctors table with Phase 7 foundation banner.
+     - `src/views/admin/patients.ejs`: Read-only patients table with Phase 8 foundation banner.
+     - `src/views/admin/devices.ejs`: Read-only devices table with Phase 5 foundation banner.
+     - `src/views/admin/activity.ejs`: Audit log table with Phase 13 foundation banner and zero-record empty states.
+  4. Created `src/public/css/admin.css`:
+     - Adheres strictly to project design language: Background `#11100E`, Surface `#1A1815`, Surface Light `#24211D`, Vanilla `#FFF4D6`, Burnt Orange `#FC6C26`, Muted `#A8A39A`.
+     - Responsive grid and sidebar layouts supporting desktop, laptop, tablet, and mobile displays without horizontal overflow.
+  5. Implemented comprehensive automated test suite `tests/adminPortalValidation.test.js`:
+     - Verified all 20 required criteria: overview loads, role access restrictions (PATIENT/DOCTOR 403), unauthenticated redirect/401, subpage access, metric accuracy, secret non-leakage, logout invalidation, empty state resilience, and navigation resolution.
+  6. Added `test:admin` to `package.json` and wired into `npm test`.
+- **Reason:**
+  Establish a fully functional, presentation-ready Super Admin portal with reusable layouts, live MongoDB metric aggregation, and read-only management foundations while preserving strict role boundaries.
+- **Files Affected:**
+  - `src/controllers/adminController.js`
+  - `src/routes/adminRoutes.js`
+  - `src/app.js`
+  - `src/views/admin/partials/sidebar.ejs`
+  - `src/views/admin/partials/topbar.ejs`
+  - `src/views/admin/overview.ejs`
+  - `src/views/admin/doctors.ejs`
+  - `src/views/admin/patients.ejs`
+  - `src/views/admin/devices.ejs`
+  - `src/views/admin/activity.ejs`
+  - `src/public/css/admin.css`
+  - `package.json`
+  - `tests/adminPortalValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/adminPortalValidation.test.js`: 20/20 tests passed.
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (regression).
+  - `node tests/authValidation.test.js`: 20/20 tests passed (regression).
+  - `node tests/rbacValidation.test.js`: 24/24 tests passed (regression).
+  - `npm test`: 84/84 total tests passed across all 5 suites.
+
 ### 2026-09-30 — Phase 3: Role-Based Authorization (RBAC) & Socket Authentication
 - **Phase / Task:** PHASE 3 (`TASK-3.1`, `TASK-3.2`, `TASK-3.3`)
 - **Change:**
