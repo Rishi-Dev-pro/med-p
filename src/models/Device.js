@@ -1,29 +1,53 @@
 const mongoose = require("mongoose");
+const { DEVICE_STATUS } = require("../config/constants");
 
 const deviceSchema = new mongoose.Schema(
     {
         deviceId: {
             type: String,
-            required: true,
+            required: [true, "deviceId is required"],
             unique: true,
             trim: true
         },
-
-        patientId: {
-            type: String,
-            required: true,
-            trim: true
-        },
-
         status: {
             type: String,
-            enum: ["active", "inactive"],
-            default: "active"
+            required: [true, "status is required"],
+            enum: {
+                values: Object.values(DEVICE_STATUS),
+                message: "Device status `{VALUE}` is not supported"
+            },
+            default: DEVICE_STATUS.ACTIVE,
+            set: (val) => (typeof val === "string" ? val.toUpperCase() : val)
+        },
+        patientId: {
+            type: String,
+            default: null,
+            trim: true
+        },
+        apiKeyHash: {
+            type: String,
+            default: null
+        },
+        resetCount: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: [0, "resetCount cannot be negative"]
+        },
+        lastSeen: {
+            type: Date,
+            default: null
         }
     },
     {
         timestamps: true
     }
 );
+
+// Sparse unique index: Enforces at most 1 device per patient; unassigned devices have patientId = null
+deviceSchema.index({ patientId: 1 }, { unique: true, sparse: true });
+
+// Standard index for fast filtering of active/inactive devices
+deviceSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Device", deviceSchema);
