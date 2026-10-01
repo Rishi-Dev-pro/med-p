@@ -7,6 +7,8 @@ const iotRoutes = require("./routes/iotRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const patientRoutes = require("./routes/patientRoutes");
+const doctorRoutes = require("./routes/doctorRoutes");
 
 const app = express();
 
@@ -54,6 +56,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/admin", adminRoutes);
 app.use("/api/iot", iotRoutes);
+
+// Dedicated Multi-Page Dashboard Routes (Phase 9)
+app.use("/patient", patientRoutes);
+app.use("/doctor", doctorRoutes);
+
+// Legacy dashboard & API routes (Phase 3-8 compatibility)
 app.use("/", dashboardRoutes);
 
 module.exports = app;

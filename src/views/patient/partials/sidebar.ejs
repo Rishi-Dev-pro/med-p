@@ -1,0 +1,49 @@
+<!-- ==========================================
+     PATIENT PORTAL SIDEBAR
+     ========================================== -->
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">H</div>
+        <div>
+            <strong>HealthTrack</strong>
+            <span>Patient Portal</span>
+        </div>
+    </div>
+
+    <nav>
+        <a href="/patient/overview" class="<%= activePage === 'overview' ? 'active' : '' %>" id="nav-patient-overview">
+            <span>📊</span>
+            <span>Overview</span>
+        </a>
+        <a href="/patient/live" class="<%= activePage === 'live' ? 'active' : '' %>" id="nav-patient-live">
+            <span>⚡</span>
+            <span>Live Data</span>
+        </a>
+        <a href="/patient/history" class="<%= activePage === 'history' ? 'active' : '' %>" id="nav-patient-history">
+            <span>📈</span>
+            <span>History</span>
+        </a>
+        <a href="/patient/profile" class="<%= activePage === 'profile' ? 'active' : '' %>" id="nav-patient-profile">
+            <span>👤</span>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer" style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(252, 108, 38, 0.2); color: var(--burnt-orange); display: grid; place-items: center; font-weight: 700; font-size: 13px;">
+                <%= user.username ? user.username.charAt(0).toUpperCase() : 'P' %>
+            </div>
+            <div style="overflow: hidden;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"><%= user.username %></div>
+                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase;">PATIENT</div>
+            </div>
+        </div>
+        <form action="/api/auth/logout" method="POST" style="margin: 0;">
+            <button type="submit" style="width: 100%; padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; transition: all 0.2s ease;">
+                <span>⎋</span>
+                <span>Sign Out</span>
+            </button>
+        </form>
+    </div>
+</aside>

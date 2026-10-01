@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Assigned Patients</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/doctor.css">
+</head>
+<body>
+    <div class="app-shell">
+        <%- include("partials/sidebar", { activePage, user, doctor }) %>
+
+        <main class="main-content">
+            <%- include("partials/topbar", { 
+                pageEyebrow: "CLINICAL COHORT", 
+                pageTitle: "Assigned Patients Roster", 
+                doctor 
+            }) %>
+
+            <section class="section-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="font-size: 18px; font-weight: 700;">Active Clinical Cohort</h2>
+                        <p style="font-size: 12px; color: var(--muted); margin-top: 2px;">Patients currently assigned to your direct clinical care and supervision</p>
+                    </div>
+                    <span style="padding: 4px 12px; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 999px; font-size: 12px; font-weight: 600;">
+                        <%= patients ? patients.length : 0 %> Assigned Patients
+                    </span>
+                </div>
+
+                <% if (!patients || patients.length === 0) { %>
+                    <div style="padding: 48px; text-align: center; color: var(--muted);">
+                        <div style="font-size: 36px; margin-bottom: 12px;">👥</div>
+                        <h3 style="font-size: 16px; color: var(--text); margin-bottom: 6px;">No patients assigned</h3>
+                        <p style="font-size: 13px;">You do not have any patients assigned at this time. The Super Admin manages patient-doctor assignments.</p>
+                    </div>
+                <% } else { %>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <th style="padding: 12px 14px;">Patient ID</th>
+                                    <th style="padding: 12px 14px;">Patient Name</th>
+                                    <th style="padding: 12px 14px;">Demographics</th>
+                                    <th style="padding: 12px 14px;">Telemetry Device</th>
+                                    <th style="padding: 12px 14px;">Latest Heart Rate</th>
+                                    <th style="padding: 12px 14px;">Latest SpO₂</th>
+                                    <th style="padding: 12px 14px; text-align: right;">Telemetry Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% patients.forEach(p => { %>
+                                    <tr style="border-bottom: 1px solid rgba(255,244,214,0.04); transition: background 0.15s ease;">
+                                        <td style="padding: 14px 14px;">
+                                            <span class="id-cell" style="font-size: 12px; font-weight: 700;"><%= p.patientId %></span>
+                                        </td>
+                                        <td style="padding: 14px 14px;">
+                                            <div style="font-weight: 600;"><%= p.name %></div>
+                                            <div style="font-size: 11px; color: var(--muted);"><%= p.email %></div>
+                                        </td>
+                                        <td style="padding: 14px 14px; color: var(--muted);">
+                                            <%= p.age %> yrs · <%= p.gender || 'unspecified' %>
+                                        </td>
+                                        <td style="padding: 14px 14px;">
+                                            <% if (p.deviceId) { %>
+                                                <span class="id-cell" style="font-size: 12px;"><%= p.deviceId %></span>
+                                                <span style="font-size: 10px; color: #69D48B; margin-left: 4px;">● ACTIVE</span>
+                                            <% } else { %>
+                                                <span style="color: var(--muted); font-size: 11px;">Unpaired</span>
+                                            <% } %>
+                                        </td>
+                                        <td style="padding: 14px 14px; font-weight: 700; color: var(--text);">
+                                            <% if (p.latestReading) { %>
+                                                <%= p.latestReading.value1 %> <span style="font-size: 11px; font-weight: 400; color: var(--muted);">bpm</span>
+                                            <% } else { %>
+                                                <span style="color: var(--muted); font-size: 12px;">--</span>
+                                            <% } %>
+                                        </td>
+                                        <td style="padding: 14px 14px; font-weight: 700; color: var(--burnt-orange);">
+                                            <% if (p.latestReading) { %>
+                                                <%= p.latestReading.value2 %> <span style="font-size: 11px; font-weight: 400; color: var(--muted);">%</span>
+                                            <% } else { %>
+                                                <span style="color: var(--muted); font-size: 12px;">--</span>
+                                            <% } %>
+                                        </td>
+                                        <td style="padding: 14px 14px; text-align: right;">
+                                            <a href="/doctor/history?patientId=<%= p.patientId %>" style="display: inline-block; padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; text-decoration: none; font-weight: 500;">
+                                                History &rarr;
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

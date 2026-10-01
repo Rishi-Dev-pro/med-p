@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 8: Patient ↔ Doctor Assignment Engine** (Completed) |
-| **Current Task** | Phase 8 Completed — Awaiting Phase 9 Authorization (`TASK-9.1: Multi-Page Dashboard Architecture`) |
-| **Overall Progress** | **69.6%** (32 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming**, **Phase 7: Doctor Provisioning & Account Lifecycle**, **Phase 8: Patient ↔ Doctor Assignment Engine** (9 / 20) |
+| **Current Phase** | **PHASE 9: Multi-Page Dashboard Architecture** (Completed) |
+| **Current Task** | Phase 9 Completed — Awaiting Phase 10 Authorization (`TASK-10.1: Reading History Engine & Paginated API`) |
+| **Overall Progress** | **76.1%** (35 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming**, **Phase 7: Doctor Provisioning & Account Lifecycle**, **Phase 8: Patient ↔ Doctor Assignment Engine**, **Phase 9: Multi-Page Dashboard Architecture** (10 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-9.1` to `TASK-9.3` (Phase 9 deliverables) |
-| **Verification Status** | Phase 8 verified: `tests/patientDoctorAssignmentValidation.test.js` passed 40/40 tests; Full regression `npm test` passed 226/226 tests across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), Phase 6 (28), Phase 7 (40), and Phase 8 (40). Zero regressions. |
-| **Last Updated Timestamp** | 2026-10-02 01:00:00 IST |
+| **Upcoming Tasks** | `TASK-10.1` to `TASK-10.2` (Phase 10 deliverables) |
+| **Verification Status** | Phase 9 verified: `tests/multiPageDashboard.test.js` passed 40/40 tests; Full regression `npm test` passed 266/266 tests across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), Phase 6 (28), Phase 7 (40), Phase 8 (40), and Phase 9 (40). Zero regressions. |
+| **Last Updated Timestamp** | 2026-10-02 05:15:00 IST |
 
 ---
 
@@ -38,7 +38,7 @@ gantt
     Doctor Provisioning & Lifecycle   :done, p7, 2026-10-02, 1d
     Patient Doctor Assignment Engine  :done, p8, 2026-10-02, 1d
     section Phase 9-13: Clinical Experience
-    Multi-Page Dashboards             :p9, after p8, 3d
+    Multi-Page Dashboards             :done, p9, 2026-10-02, 1d
     Reading History API               :p10, after p9, 2d
     Interactive Real-Time Charts      :p11, after p10, 2d
     Device Health Diagnostics         :p12, after p9, 2d
@@ -68,7 +68,7 @@ gantt
 | **6** | Patient Registration & Device Claiming | `DONE` | 2 / 2 | 100% |
 | **7** | Doctor Management (Admin Provisioning) | `DONE` | 4 / 4 | 100% |
 | **8** | Patient ↔ Doctor Assignment Engine | `DONE` | 2 / 2 | 100% |
-| **9** | Multi-Page Dashboard Architecture | `NOT_STARTED` | 0 / 3 | 0% |
+| **9** | Multi-Page Dashboard Architecture | `DONE` | 3 / 3 | 100% |
 | **10** | Reading History Engine & Paginated API | `NOT_STARTED` | 0 / 2 | 0% |
 | **11** | Charts & Time-Series Data Visualization | `NOT_STARTED` | 0 / 2 | 0% |
 | **12** | Device Monitoring & Telemetry Health | `NOT_STARTED` | 0 / 2 | 0% |
@@ -84,7 +84,7 @@ gantt
 
 ## KNOWN DISCREPANCIES & RESOLUTIONS
 
-1. **Resolved in Phases 0 through 8:**
+1. **Resolved in Phases 0 through 9:**
    - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
    - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
    - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
@@ -96,9 +96,10 @@ gantt
    - **Patient Registration & Device Claim (Phase 6):** Server-authoritative device claim validation, atomic claim via `findOneAndUpdate` preventing race conditions, compensation rollback on partial failures.
    - **Doctor Provisioning & Account Lifecycle (Phase 7):** Clinical account creation, bcrypt credentials, activate/deactivate account synchronization, and audit logging.
    - **Patient ↔ Doctor Assignment Engine (Phase 8):** Server-authoritative assignment/reassignment/unassignment operations (`POST /api/admin/assignments`, `DELETE /api/admin/assignments/:patientId`). Strict enforcement: 1 patient has at most 1 current doctor, 1 doctor has many patients, new assignments allowed only to active doctors (`status === DOCTOR_STATUS.ACTIVE`). Doctor deactivation unassigns patients (`doctorId = null`) without auto-reassignment; reactivation requires explicit reassignment. Historical `SensorReading.doctorId` snapshots are immutable. Future telemetry & Socket.IO room routing (`doctor:<doctorId>`) seamlessly adapt without data corruption.
+   - **Multi-Page Dashboard Architecture (Phase 9):** Split legacy single-page dashboards into dedicated, bookmarkable, server-rendered multi-page architectures across Patient (`/patient/overview`, `/patient/live`, `/patient/history`, `/patient/profile`), Doctor (`/doctor/overview`, `/doctor/patients`, `/doctor/monitor`, `/doctor/history`), and Admin (`/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`). Every route enforces server-side RBAC. Navigation features real URLs with active indicator state and browser back/forward/refresh support. Page-specific hydration queries only required data per view. Identity strictly derived from authenticated JWT context, immune to client parameter tampering.
 
 ---
 
 ## NEXT IMMEDIATE ACTIONS
-1. Commit Phase 8 implementation and push to GitHub.
-2. Await instruction before beginning Phase 9 (Multi-Page Dashboard Architecture).
+1. Commit Phase 9 implementation and push to GitHub.
+2. Await instruction before beginning Phase 10 (Reading History Engine & Paginated API).

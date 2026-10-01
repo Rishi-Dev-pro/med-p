@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 32 |
+| **Tasks Completed** | 35 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 14 |
-| **Overall Completion** | 69.6% |
+| **Tasks Not Started** | 11 |
+| **Overall Completion** | 76.1% |
 
 ---
 
@@ -155,9 +155,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-9.1` | Refactor patient dashboard into multi-page sub-router (`/patient/overview`, `/live`, `/history`, `/profile`) with RBAC hydration | `NOT_STARTED` | Phase 3 | `src/routes/patientRoutes.js`, `src/views/patient/*.ejs` | None (Not yet executed) | - | Replaces single anchor view |
-| `TASK-9.2` | Refactor doctor dashboard into multi-page sub-router (`/doctor/overview`, `/patients`, `/monitor`, `/history`) with RBAC hydration | `NOT_STARTED` | Phase 3, Phase 8 | `src/routes/doctorRoutes.js`, `src/views/doctor/*.ejs` | None (Not yet executed) | - | Replaces single anchor view |
-| `TASK-9.3` | Unify multi-page navigation headers and active state highlighting | `NOT_STARTED` | `TASK-9.1`, `TASK-9.2` | `src/views/partials/*.ejs`, `src/public/css/*.css` | None (Not yet executed) | - | Shared layout ergonomics |
+| `TASK-9.1` | Refactor patient dashboard into multi-page sub-router (`/patient/overview`, `/live`, `/history`, `/profile`) with RBAC hydration | `DONE` | Phase 3 | `src/routes/patientRoutes.js`, `src/controllers/patientController.js`, `src/views/patient/*.ejs` | `node tests/multiPageDashboard.test.js` (Tests 1-4, 14, 17, 19, 21, 23, 25, 28-31 PASS) | 2026-10-02 | Dedicated patient router with server-side identity derivation, zero data leakage, and page-specific hydration |
+| `TASK-9.2` | Refactor doctor dashboard into multi-page sub-router (`/doctor/overview`, `/patients`, `/monitor`, `/history`) with RBAC hydration | `DONE` | Phase 3, Phase 8 | `src/routes/doctorRoutes.js`, `src/controllers/doctorController.js`, `src/views/doctor/*.ejs` | `node tests/multiPageDashboard.test.js` (Tests 5-8, 15, 18, 20, 22, 24, 26, 28-30, 32, 35-36 PASS) | 2026-10-02 | Dedicated doctor router enforcing strict server-side patient roster isolation and filtered historical telemetry |
+| `TASK-9.3` | Unify multi-page navigation headers and active state highlighting | `DONE` | `TASK-9.1`, `TASK-9.2` | `src/views/patient/partials/*.ejs`, `src/views/doctor/partials/*.ejs`, `src/public/css/*.css` | `node tests/multiPageDashboard.test.js` (Tests 25-28, 38-39 PASS) | 2026-10-02 | Shared modular sidebars, topbars, active nav state highlighting, and dark futuristic vanilla/burnt-orange styling |
 
 ---
 

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Clinical History</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/doctor.css">
+</head>
+<body>
+    <div class="app-shell">
+        <%- include("partials/sidebar", { activePage, user, doctor }) %>
+
+        <main class="main-content">
+            <%- include("partials/topbar", { 
+                pageEyebrow: "CLINICAL AUDIT", 
+                pageTitle: "Historical Telemetry Archives", 
+                doctor 
+            }) %>
+
+            <!-- Patient Filter Selector -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 18px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <form action="/doctor/history" method="GET" style="display: flex; align-items: center; gap: 14px; margin: 0;">
+                    <label for="patientFilter" style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">Filter by Patient:</label>
+                    <select id="patientFilter" name="patientId" onchange="this.form.submit()" style="padding: 8px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                        <option value="">-- All Assigned Patients --</option>
+                        <% if (assignedPatients) { %>
+                            <% assignedPatients.forEach(p => { %>
+                                <option value="<%= p.patientId %>" <%= selectedPatientId === p.patientId ? 'selected' : '' %>>
+                                    <%= p.name %> (<%= p.patientId %>)
+                                </option>
+                            <% }) %>
+                        <% } %>
+                    </select>
+                </form>
+
+                <div style="font-size: 12px; color: var(--muted);">
+                    Showing <strong style="color: var(--text);"><%= readings ? readings.length : 0 %></strong> records
+                </div>
+            </div>
+
+            <!-- Historical Readings Table -->
+            <section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+                <% if (!readings || readings.length === 0) { %>
+                    <div style="padding: 48px; text-align: center; color: var(--muted);">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📈</div>
+                        <h3 style="font-size: 16px; color: var(--text); margin-bottom: 6px;">No historical telemetry records found</h3>
+                        <p style="font-size: 13px;">Telemetry snapshots from assigned patients will be logged and listed here chronologically.</p>
+                    </div>
+                <% } else { %>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    <th style="padding: 12px 14px;">Timestamp</th>
+                                    <th style="padding: 12px 14px;">Patient ID</th>
+                                    <th style="padding: 12px 14px;">Heart Rate</th>
+                                    <th style="padding: 12px 14px;">Blood Oxygen</th>
+                                    <th style="padding: 12px 14px;">Device ID</th>
+                                    <th style="padding: 12px 14px; text-align: right;">Reading ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% readings.forEach(r => { %>
+                                    <tr style="border-bottom: 1px solid rgba(255,244,214,0.04); transition: background 0.15s ease;">
+                                        <td style="padding: 14px 14px;">
+                                            <div><%= new Date(r.timestamp).toLocaleDateString() %></div>
+                                            <div style="font-size: 11px; color: var(--muted);"><%= new Date(r.timestamp).toLocaleTimeString() %></div>
+                                        </td>
+                                        <td style="padding: 14px 14px;">
+                                            <span class="id-cell" style="font-size: 12px; font-weight: 700;"><%= r.patientId %></span>
+                                        </td>
+                                        <td style="padding: 14px 14px; font-weight: 700; color: var(--text);">
+                                            <%= r.value1 %> <span style="font-size: 11px; font-weight: 400; color: var(--muted);">bpm</span>
+                                        </td>
+                                        <td style="padding: 14px 14px; font-weight: 700; color: var(--burnt-orange);">
+                                            <%= r.value2 %> <span style="font-size: 11px; font-weight: 400; color: var(--muted);">%</span>
+                                        </td>
+                                        <td style="padding: 14px 14px;">
+                                            <span class="id-cell" style="font-size: 12px;"><%= r.deviceId %></span>
+                                        </td>
+                                        <td style="padding: 14px 14px; text-align: right;">
+                                            <span style="font-family: monospace; font-size: 11px; color: var(--muted);"><%= r._id ? r._id.toString().slice(-8) : '—' %></span>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!-- ==========================================
+     DOCTOR CLINICAL PORTAL TOPBAR
+     ========================================== -->
+<header class="topbar">
+    <div>
+        <span class="eyebrow" style="color: var(--burnt-orange); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;"><%= pageEyebrow || "CLINICAL PORTAL" %></span>
+        <h1 style="font-size: 26px; font-weight: 700; margin-top: 4px; color: var(--text);"><%= pageTitle || ("Dr. " + (doctor ? doctor.name : "Physician")) %></h1>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 999px; font-size: 12px; color: #60A5FA; font-weight: 600;">
+            <span>🩺</span>
+            <span><%= doctor ? (doctor.specialization || "Clinical Practice") : "Physician" %></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(105, 212, 139, 0.1); border: 1px solid rgba(105, 212, 139, 0.25); border-radius: 999px; font-size: 12px; color: #69D48B; font-weight: 600;">
+            <span class="status-dot"></span>
+            <span>ACTIVE CLINICIAN</span>
+        </div>
+    </div>
+</header>

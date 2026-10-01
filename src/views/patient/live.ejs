@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Live Telemetry</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/patient.css">
+</head>
+<body>
+    <div class="app-shell">
+        <%- include("partials/sidebar", { activePage, user }) %>
+
+        <main class="main-content">
+            <%- include("partials/topbar", { 
+                pageEyebrow: "BIOMETRIC MONITORING", 
+                pageTitle: "Live Telemetry Feed", 
+                patient 
+            }) %>
+
+            <!-- Connection Status Banner -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="socketStatusDot" class="status-dot"></span>
+                    <span id="socketStatusText" style="font-size: 13px; font-weight: 600; color: #69D48B;">Connecting to telemetry stream...</span>
+                </div>
+                <div style="font-size: 12px; color: var(--muted);">
+                    Authorized Channel: <span class="id-cell" style="font-size: 11px;">patient:<%= patient.patientId %></span>
+                </div>
+            </div>
+
+            <!-- Big Live Telemetry Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
+                <div style="padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); position: relative; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">HEART RATE (VALUE 01)</span>
+                        <span style="font-size: 20px;">❤️</span>
+                    </div>
+                    <div id="liveValue1" style="font-size: 64px; font-weight: 800; color: var(--text); margin: 20px 0 10px; font-variant-numeric: tabular-nums;">
+                        <%= latestReading ? latestReading.value1 : '--' %>
+                    </div>
+                    <div style="font-size: 13px; color: var(--muted);">Beats per minute (BPM)</div>
+                </div>
+
+                <div style="padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); position: relative; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--burnt-orange); letter-spacing: 0.08em;">OXYGEN SATURATION (VALUE 02)</span>
+                        <span style="font-size: 20px;">🫁</span>
+                    </div>
+                    <div id="liveValue2" style="font-size: 64px; font-weight: 800; color: var(--burnt-orange); margin: 20px 0 10px; font-variant-numeric: tabular-nums;">
+                        <%= latestReading ? latestReading.value2 : '--' %>
+                    </div>
+                    <div style="font-size: 13px; color: var(--muted);">SpO₂ Percentage (%)</div>
+                </div>
+            </div>
+
+            <!-- Live Stream Packet Log -->
+            <section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="font-size: 16px; font-weight: 700;">Live Packet Feed</h3>
+                    <span id="packetCountBadge" style="padding: 3px 10px; background: rgba(255,255,255,0.06); border-radius: 999px; font-size: 11px; color: var(--muted);">Listening...</span>
+                </div>
+
+                <div id="packetStreamList" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                    <% if (latestReading) { %>
+                        <div style="padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 6px; display: flex; justify-content: space-between;">
+                            <span>Initial snapshot: Value1 = <%= latestReading.value1 %>, Value2 = <%= latestReading.value2 %></span>
+                            <span style="color: var(--muted);"><%= new Date(latestReading.timestamp).toLocaleTimeString() %></span>
+                        </div>
+                    <% } else { %>
+                        <div id="noPacketsPlaceholder" style="padding: 16px; text-align: center; color: var(--muted); font-family: sans-serif;">
+                            Waiting for incoming telemetry packets from device...
+                        </div>
+                    <% } %>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const statusDot = document.getElementById("socketStatusDot");
+        const statusText = document.getElementById("socketStatusText");
+        const liveVal1 = document.getElementById("liveValue1");
+        const liveVal2 = document.getElementById("liveValue2");
+        const streamList = document.getElementById("packetStreamList");
+        const countBadge = document.getElementById("packetCountBadge");
+        const placeholder = document.getElementById("noPacketsPlaceholder");
+
+        let packetCount = 0;
+
+        if (typeof io !== "undefined") {
+            const socket = io({
+                transports: ["websocket", "polling"],
+                withCredentials: true
+            });
+
+            socket.on("connect", () => {
+                if (statusDot) {
+                    statusDot.style.background = "#69D48B";
+                    statusDot.style.boxShadow = "0 0 12px rgba(105, 212, 139, 0.7)";
+                }
+                if (statusText) {
+                    statusText.textContent = "Live Telemetry Connected";
+                    statusText.style.color = "#69D48B";
+                }
+            });
+
+            socket.on("connect_error", () => {
+                if (statusDot) {
+                    statusDot.style.background = "#F87171";
+                    statusDot.style.boxShadow = "none";
+                }
+                if (statusText) {
+                    statusText.textContent = "Reconnecting to telemetry service...";
+                    statusText.style.color = "#F87171";
+                }
+            });
+
+            socket.on("sensor-reading", (data) => {
+                if (!data) return;
+
+                if (liveVal1 && data.value1 !== undefined) {
+                    liveVal1.textContent = data.value1;
+                }
+                if (liveVal2 && data.value2 !== undefined) {
+                    liveVal2.textContent = data.value2;
+                }
+
+                packetCount++;
+                if (countBadge) {
+                    countBadge.textContent = `${packetCount} packets received`;
+                }
+                if (placeholder) {
+                    placeholder.style.display = "none";
+                }
+
+                if (streamList) {
+                    const row = document.createElement("div");
+                    row.style.cssText = "padding: 10px 14px; background: rgba(252, 108, 38, 0.06); border: 1px solid rgba(252, 108, 38, 0.2); border-radius: 6px; display: flex; justify-content: space-between; animation: fadeIn 0.3s ease;";
+                    const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+                    row.innerHTML = `<span><strong>DEV ${data.deviceId || 'UNIT'}:</strong> Value 1 = ${data.value1}, Value 2 = ${data.value2}</span><span style="color: var(--muted);">${timeStr}</span>`;
+                    streamList.insertBefore(row, streamList.firstChild);
+
+                    if (streamList.children.length > 20) {
+                        streamList.removeChild(streamList.lastChild);
+                    }
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>

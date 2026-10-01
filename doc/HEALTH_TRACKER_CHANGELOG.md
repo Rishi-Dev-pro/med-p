@@ -5,6 +5,93 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 9: Multi-Page Dashboard Architecture
+- **Phase / Task:** PHASE 9 (`TASK-9.1`, `TASK-9.2`, `TASK-9.3`)
+- **Change:**
+  1. Created `src/controllers/patientController.js`:
+     - Implemented dedicated page hydration controllers for Patient portal views:
+       - `getOverview`: Hydrates patient profile, assigned doctor information, bound hardware device, and latest telemetry snapshot (`SensorReading.findOne({ patientId }).sort({ timestamp: -1 })`). Does not query entire historical telemetry.
+       - `getLive`: Hydrates essential metadata for real-time telemetry streaming (active device, authenticated patient profile, JWT session info for client-side Socket.IO connection). Telemetry stream is consumed directly from Socket.IO room `patient:<patientId>`.
+       - `getHistory`: Hydrates initial historical telemetry table (page-specific query with limit). Does not mutate or rewrite historical sensor readings.
+       - `getProfile`: Hydrates sanitized patient demographic and clinical profile (profileId, name, age, gender, assigned doctor, assigned device, user email/status). Never exposes password hashes, secrets, JWTs, or internal credentials.
+     - Dual-mode support: Renders modular EJS views when requested by browser (`Accept: text/html`) and returns clean structured JSON when requested via API (`Accept: application/json`).
+     - Derived identity: Patient identity is strictly resolved from authenticated JWT context (`req.user.profileId`), completely ignoring any URL query parameter tampering (`?patientId=`).
+  2. Created `src/controllers/doctorController.js`:
+     - Implemented dedicated page hydration controllers for Doctor portal views:
+       - `getOverview`: Hydrates doctor profile, assigned patient count (`Patient.countDocuments({ doctorId })`), active patient/device list, and latest telemetry summaries for assigned patients.
+       - `getPatients`: Hydrates roster of patients strictly assigned to the authenticated doctor (`Patient.find({ doctorId })`), including patient device status and assigned timestamp. Doctors cannot inspect unassigned patients or patients of other clinicians.
+       - `getMonitor`: Hydrates multi-patient live monitor page initialization data with assigned patient list. Real-time telemetry is consumed securely via authorized Socket.IO room `doctor:<doctorId>`.
+       - `getHistory`: Hydrates clinical reading history strictly filtered by assigned patient IDs (`patientId: { $in: assignedPatientIds }`).
+     - Derived identity: Doctor identity is strictly resolved from authenticated JWT context (`req.user.profileId`), preventing `?doctorId=` tampering.
+  3. Created `src/routes/patientRoutes.js`:
+     - Mounted dedicated endpoints:
+       - `GET /overview` -> `patientController.getOverview`
+       - `GET /live` -> `patientController.getLive`
+       - `GET /history` -> `patientController.getHistory`
+       - `GET /profile` -> `patientController.getProfile`
+       - `GET /` -> Redirects (302) to `/patient/overview`
+     - Enforced `authenticate` and `requireRole(ROLES.PATIENT)` on every single route to eliminate route leakage.
+  4. Created `src/routes/doctorRoutes.js`:
+     - Mounted dedicated endpoints:
+       - `GET /overview` -> `doctorController.getOverview`
+       - `GET /patients` -> `doctorController.getPatients`
+       - `GET /monitor` -> `doctorController.getMonitor`
+       - `GET /history` -> `doctorController.getHistory`
+       - `GET /` -> Redirects (302) to `/doctor/overview`
+     - Enforced `authenticate` and `requireRole(ROLES.DOCTOR)` on every single route.
+  5. Updated `src/app.js`:
+     - Mounted `app.use("/patient", patientRoutes)` and `app.use("/doctor", doctorRoutes)` before `app.use("/", dashboardRoutes)`.
+     - Preserved existing parameterized routes (`/patient/:patientId`, `/doctor/:doctorId`, `/api/doctor/:doctorId/patients`) in `dashboardRoutes.js` for 100% backward compatibility with Phase 3 and Phase 8 test suites.
+     - Preserved Admin multi-page routing (`/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`) established in Phase 4.
+  6. Created Modular EJS Views & Partials:
+     - Patient Views (`src/views/patient/`):
+       - `partials/sidebar.ejs`: Patient navigation menu (Overview, Live Data, History, Profile) with dynamic `activePage` highlighting and profile info.
+       - `partials/topbar.ejs`: Top navigation header with portal title, active route indicator, user badge, and logout action.
+       - `overview.ejs`, `live.ejs`, `history.ejs`, `profile.ejs`: Bookmarkable, deep-linkable views with responsive layouts.
+     - Doctor Views (`src/views/doctor/`):
+       - `partials/sidebar.ejs`: Doctor navigation menu (Overview, Patients, Live Monitor, History) with dynamic `activePage` highlighting.
+       - `partials/topbar.ejs`: Top navigation header with doctor credentials, active page pill, and logout action.
+       - `overview.ejs`, `patients.ejs`, `monitor.ejs`, `history.ejs`: Bookmarkable, deep-linkable clinical views.
+  7. Updated Patient CSS (`src/public/css/patient.css`):
+     - Added design system tokens and responsive styles for sidebar/topbar navigation, live status pulse animation, and mobile navigation wrapping.
+  8. Created Dedicated Phase 9 Test Suite (`tests/multiPageDashboard.test.js`):
+     - 40 automated tests covering:
+       - Route existence (Tests 1-13): Patient (4), Doctor (4), Admin (5).
+       - Authentication rejection (Tests 14-16): Unauthenticated access to Patient, Doctor, and Admin routes rejected with 401 Unauthorized / redirect.
+       - Cross-role authorization rejection (Tests 17-20): Patient denied Doctor/Admin routes; Doctor denied Patient/Admin routes.
+       - Identity derivation & tampering immunity (Tests 21-24): Patient and Doctor identity strictly derived from JWT context; `?patientId=` and `?doctorId=` query parameter spoofing rejected/ignored.
+       - Navigation URLs & active state (Tests 25-28): Verified HTML contains correct navigation URLs and `active` class on current page link.
+       - Direct URL access & legacy route redirection (Tests 29-30): Verified `/patient/history` direct URL access and `/patient` redirect to `/patient/overview`.
+       - Data isolation (Tests 31-32): Patient history isolates telemetry to authenticated patient; Doctor patients view isolates roster to assigned patients only.
+       - Super Admin protection & Socket.IO preservation (Tests 33-34): Admin pages require `SUPER_ADMIN` role; Socket.IO handshake JWT authentication intact.
+       - Page-specific hydration efficiency (Tests 35-37): Patient profile, doctor patients, and admin devices hydrate only required view-specific data.
+       - Legacy route backward compatibility (Tests 38-40): Verified `/patient/:patientId` and `/doctor/:doctorId` remain functional.
+  9. Updated `package.json`:
+     - Added `test:dashboard` script (`node tests/multiPageDashboard.test.js`) and incorporated into master `npm test` pipeline.
+- **Reason:**
+  Transition the application from monolithic / anchor-based single-page dashboards to bookmarkable, server-rendered multi-page architectures with real URLs, browser history support, view-specific hydration, and strict per-route RBAC.
+- **Files Affected:**
+  - `package.json`
+  - `src/app.js`
+  - `src/controllers/patientController.js`
+  - `src/controllers/doctorController.js`
+  - `src/routes/patientRoutes.js`
+  - `src/routes/doctorRoutes.js`
+  - `src/public/css/patient.css`
+  - `src/views/patient/partials/sidebar.ejs`
+  - `src/views/patient/partials/topbar.ejs`
+  - `src/views/patient/overview.ejs`
+  - `src/views/patient/live.ejs`
+  - `src/views/patient/history.ejs`
+  - `src/views/patient/profile.ejs`
+  - `src/views/doctor/partials/sidebar.ejs`
+  - `src/views/doctor/partials/topbar.ejs`
+  - `src/views/doctor/overview.ejs`
+  - `src/views/doctor/patients.ejs`
+  - `src/views/doctor/monitor.ejs`
+  - `src/views/doctor/history.ejs`
+  - `tests/multiPageDashboard.test.js`
+
 ### 2026-10-02 — Phase 8: Patient ↔ Doctor Assignment Engine & Clinical Relationship Management
 - **Phase / Task:** PHASE 8 (`TASK-8.1`, `TASK-8.2`)
 - **Change:**

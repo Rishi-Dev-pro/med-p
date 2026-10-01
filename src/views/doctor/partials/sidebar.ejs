@@ -1,0 +1,49 @@
+<!-- ==========================================
+     DOCTOR CLINICAL PORTAL SIDEBAR
+     ========================================== -->
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">H</div>
+        <div>
+            <strong>HealthTrack</strong>
+            <span>Clinical Portal</span>
+        </div>
+    </div>
+
+    <nav>
+        <a href="/doctor/overview" class="<%= activePage === 'overview' ? 'active' : '' %>" id="nav-doctor-overview">
+            <span>📊</span>
+            <span>Overview</span>
+        </a>
+        <a href="/doctor/patients" class="<%= activePage === 'patients' ? 'active' : '' %>" id="nav-doctor-patients">
+            <span>👥</span>
+            <span>Patients</span>
+        </a>
+        <a href="/doctor/monitor" class="<%= activePage === 'monitor' ? 'active' : '' %>" id="nav-doctor-monitor">
+            <span>⚡</span>
+            <span>Live Monitor</span>
+        </a>
+        <a href="/doctor/history" class="<%= activePage === 'history' ? 'active' : '' %>" id="nav-doctor-history">
+            <span>📈</span>
+            <span>History</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer" style="margin-top: auto; padding-top: 24px; border-top: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.2); color: #60A5FA; display: grid; place-items: center; font-weight: 700; font-size: 13px;">
+                Dr
+            </div>
+            <div style="overflow: hidden;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"><%= doctor ? doctor.name : (user.username || 'Doctor') %></div>
+                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase;">PHYSICIAN · <%= doctor ? doctor.doctorId : 'ACTIVE' %></div>
+            </div>
+        </div>
+        <form action="/api/auth/logout" method="POST" style="margin: 0;">
+            <button type="submit" style="width: 100%; padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; transition: all 0.2s ease;">
+                <span>⎋</span>
+                <span>Sign Out</span>
+            </button>
+        </form>
+    </div>
+</aside>

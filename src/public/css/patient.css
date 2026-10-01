@@ -1,0 +1,90 @@
+/* ==========================================
+   HEALTH TRACKER — PATIENT PORTAL STYLING
+   ========================================== */
+
+.hero-card {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.hero-card:hover {
+    border-color: rgba(252, 108, 38, 0.4);
+    transform: translateY(-2px);
+}
+
+.device-orb {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(105, 212, 139, 0.4) 0%, rgba(26, 24, 21, 0.8) 70%);
+    border: 1px solid rgba(105, 212, 139, 0.3);
+    display: grid;
+    place-items: center;
+    color: #69D48B;
+    box-shadow: 0 0 20px rgba(105, 212, 139, 0.25);
+    animation: pulseOrb 3s infinite ease-in-out;
+}
+
+@keyframes pulseOrb {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(105, 212, 139, 0.2);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 25px rgba(105, 212, 139, 0.4);
+    }
+}
+
+.metric-card {
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 244, 214, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Tabular figures for telemetry numbers */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .app-shell {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .sidebar nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .main-content {
+        padding: 24px 16px;
+    }
+    .hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+}

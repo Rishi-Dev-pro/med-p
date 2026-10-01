@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Patient Profile</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/patient.css">
+</head>
+<body>
+    <div class="app-shell">
+        <%- include("partials/sidebar", { activePage, user }) %>
+
+        <main class="main-content">
+            <%- include("partials/topbar", { 
+                pageEyebrow: "IDENTITY & CREDENTIALS", 
+                pageTitle: "Patient Profile", 
+                patient 
+            }) %>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+                <!-- Personal Demographics Card -->
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px;">
+                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(252, 108, 38, 0.15); color: var(--burnt-orange); display: grid; place-items: center; font-size: 20px; font-weight: 700;">
+                            👤
+                        </div>
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: 700;"><%= patient.name %></h3>
+                            <div class="id-cell" style="font-size: 12px; margin-top: 2px;"><%= patient.patientId %></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                            <span style="color: var(--muted);">Registered Email</span>
+                            <span style="font-weight: 600;"><%= patient.email %></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                            <span style="color: var(--muted);">Age</span>
+                            <span style="font-weight: 600;"><%= patient.age %> years</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+                            <span style="color: var(--muted);">Gender</span>
+                            <span style="font-weight: 600;"><%= patient.gender || 'Not specified' %></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 4px;">
+                            <span style="color: var(--muted);">Enrolled At</span>
+                            <span style="font-weight: 600;"><%= patient.registeredAt ? new Date(patient.registeredAt).toLocaleDateString() : (patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : '—') %></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Security & Care Team -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <!-- Platform Account Card -->
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+                        <h4 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 16px;">PLATFORM SECURITY</h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Username</span>
+                                <span style="font-weight: 600; font-family: monospace;"><%= user.username %></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Account Role</span>
+                                <span style="font-weight: 700; color: var(--burnt-orange);">PATIENT</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Account Status</span>
+                                <span class="status-pill active-pill">ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Care Team Card -->
+                    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+                        <h4 style="font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 16px;">CARE TEAM & HARDWARE</h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Assigned Physician</span>
+                                <span style="font-weight: 600;"><%= doctor ? doctor.name : 'No doctor assigned' %></span>
+                            </div>
+                            <% if (doctor) { %>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--muted);">Specialization</span>
+                                    <span style="color: #60A5FA;"><%= doctor.specialization || 'General Medicine' %></span>
+                                </div>
+                            <% } %>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Paired Hardware Device</span>
+                                <span class="id-cell"><%= device ? device.deviceId : 'None' %></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
