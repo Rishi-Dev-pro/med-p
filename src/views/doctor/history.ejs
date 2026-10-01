@@ -18,29 +18,70 @@
                 doctor 
             }) %>
 
-            <!-- Patient Filter Selector -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 18px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
-                <form action="/doctor/history" method="GET" style="display: flex; align-items: center; gap: 14px; margin: 0;">
-                    <label for="patientFilter" style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">Filter by Patient:</label>
-                    <select id="patientFilter" name="patientId" onchange="this.form.submit()" style="padding: 8px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
-                        <option value="">-- All Assigned Patients --</option>
-                        <% if (assignedPatients) { %>
-                            <% assignedPatients.forEach(p => { %>
-                                <option value="<%= p.patientId %>" <%= selectedPatientId === p.patientId ? 'selected' : '' %>>
-                                    <%= p.name %> (<%= p.patientId %>)
-                                </option>
-                            <% }) %>
-                        <% } %>
-                    </select>
-                </form>
+            <!-- Patient Filter & Date Controls Bar -->
+            <div style="margin-bottom: 24px; padding: 18px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <form action="/doctor/history" method="GET" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 0;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="patientFilter" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">Patient:</label>
+                            <select id="patientFilter" name="patientId" style="padding: 7px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                                <option value="">-- All Assigned Patients --</option>
+                                <% if (typeof assignedPatients !== 'undefined' && assignedPatients) { %>
+                                    <% assignedPatients.forEach(p => { %>
+                                        <option value="<%= p.patientId %>" <%= (typeof selectedPatientId !== 'undefined' && selectedPatientId === p.patientId) ? 'selected' : '' %>>
+                                            <%= p.name %> (<%= p.patientId %>)
+                                        </option>
+                                    <% }) %>
+                                <% } %>
+                            </select>
+                        </div>
 
-                <div style="font-size: 12px; color: var(--muted);">
-                    Showing <strong style="color: var(--text);"><%= readings ? readings.length : 0 %></strong> records
-                </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="startDate" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">From:</label>
+                            <input type="date" id="startDate" name="startDate" value="<%= typeof startDate !== 'undefined' ? startDate : '' %>" style="padding: 7px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="endDate" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">To:</label>
+                            <input type="date" id="endDate" name="endDate" value="<%= typeof endDate !== 'undefined' ? endDate : '' %>" style="padding: 7px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                        </div>
+
+                        <button type="submit" style="padding: 7px 16px; background: var(--burnt-orange); border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;">
+                            Apply Filter
+                        </button>
+
+                        <% if ((typeof selectedPatientId !== 'undefined' && selectedPatientId) || (typeof startDate !== 'undefined' && startDate) || (typeof endDate !== 'undefined' && endDate)) { %>
+                            <a href="/doctor/history" style="padding: 7px 12px; background: rgba(255,255,255,0.08); border-radius: 6px; color: var(--muted); font-size: 12px; text-decoration: none;">
+                                Clear Filter
+                            </a>
+                        <% } %>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button type="button" onclick="alert('CSV export coming soon (Scheduled for future telemetry enhancements).')" style="padding: 7px 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <span>📥</span> Export CSV (Stub)
+                        </button>
+                        <div style="font-size: 12px; color: var(--muted);">
+                            Total: <strong style="color: var(--text);"><%= (typeof pagination !== 'undefined' && pagination.total) ? pagination.total : (readings ? readings.length : 0) %></strong> records
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <!-- Historical Readings Table -->
             <section style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2 style="font-size: 18px; font-weight: 700;">Biometric Reading Records</h2>
+                        <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">Historical telemetry logs from assigned clinical caseload</p>
+                    </div>
+                    <% if (typeof pagination !== 'undefined' && pagination.pages > 1) { %>
+                        <span style="padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 999px; font-size: 12px; color: var(--muted);">
+                            Page <%= pagination.page %> of <%= pagination.pages %>
+                        </span>
+                    <% } %>
+                </div>
+
                 <% if (!readings || readings.length === 0) { %>
                     <div style="padding: 48px; text-align: center; color: var(--muted);">
                         <div style="font-size: 36px; margin-bottom: 12px;">📈</div>
@@ -87,6 +128,41 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <% if (typeof pagination !== 'undefined' && pagination.pages > 1) { %>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);">
+                            <div>
+                                <% if (pagination.page > 1) { %>
+                                    <a href="/doctor/history?page=<%= pagination.page - 1 %><%= typeof selectedPatientId !== 'undefined' && selectedPatientId ? '&patientId=' + encodeURIComponent(selectedPatientId) : '' %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                       style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
+                                        ← Previous Page
+                                    </a>
+                                <% } else { %>
+                                    <span style="padding: 8px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: var(--muted); font-size: 12px; cursor: not-allowed;">
+                                        ← Previous Page
+                                    </span>
+                                <% } %>
+                            </div>
+
+                            <span style="font-size: 12px; color: var(--muted);">
+                                Page <strong style="color: var(--text);"><%= pagination.page %></strong> of <strong style="color: var(--text);"><%= pagination.pages %></strong> (<%= pagination.total %> Total Records)
+                            </span>
+
+                            <div>
+                                <% if (pagination.page < pagination.pages) { %>
+                                    <a href="/doctor/history?page=<%= pagination.page + 1 %><%= typeof selectedPatientId !== 'undefined' && selectedPatientId ? '&patientId=' + encodeURIComponent(selectedPatientId) : '' %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                       style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
+                                        Next Page →
+                                    </a>
+                                <% } else { %>
+                                    <span style="padding: 8px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: var(--muted); font-size: 12px; cursor: not-allowed;">
+                                        Next Page →
+                                    </span>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
                 <% } %>
             </section>
         </main>

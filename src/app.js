@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
+const apiRoutes = require("./routes/apiRoutes");
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/admin", adminRoutes);
 app.use("/api/iot", iotRoutes);
+app.use("/api", apiRoutes);
 
 // Dedicated Multi-Page Dashboard Routes (Phase 9)
 app.use("/patient", patientRoutes);

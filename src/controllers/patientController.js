@@ -116,17 +116,75 @@ const getHistory = async (req, res) => {
             return res.status(404).send("Patient profile not found");
         }
 
-        const readings = await SensorReading.find({ patientId: patient.patientId })
-            .sort({ timestamp: -1 })
-            .limit(30)
-            .lean();
+        // Pagination
+        let page = 1;
+        if (req.query.page !== undefined) {
+            const parsedPage = Number(req.query.page);
+            if (Number.isInteger(parsedPage) && parsedPage > 0) {
+                page = parsedPage;
+            }
+        }
+
+        let limit = 20;
+        if (req.query.limit !== undefined) {
+            const parsedLimit = Number(req.query.limit);
+            if (Number.isInteger(parsedLimit) && parsedLimit > 0) {
+                limit = Math.min(parsedLimit, 100);
+            }
+        }
+
+        // Date filtering
+        const filter = { patientId: patient.patientId };
+        const dateQuery = {};
+
+        if (req.query.startDate) {
+            const startDateStr = String(req.query.startDate).trim();
+            const startDate = /^\d{4}-\d{2}-\d{2}$/.test(startDateStr)
+                ? new Date(`${startDateStr}T00:00:00.000Z`)
+                : new Date(startDateStr);
+            if (!isNaN(startDate.getTime())) {
+                dateQuery.$gte = startDate;
+            }
+        }
+
+        if (req.query.endDate) {
+            const endDateStr = String(req.query.endDate).trim();
+            const endDate = /^\d{4}-\d{2}-\d{2}$/.test(endDateStr)
+                ? new Date(`${endDateStr}T23:59:59.999Z`)
+                : new Date(endDateStr);
+            if (!isNaN(endDate.getTime())) {
+                dateQuery.$lte = endDate;
+            }
+        }
+
+        if (Object.keys(dateQuery).length > 0) {
+            filter.timestamp = dateQuery;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [readings, total] = await Promise.all([
+            SensorReading.find(filter)
+                .sort({ timestamp: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            SensorReading.countDocuments(filter)
+        ]);
+
+        const pages = total === 0 ? 0 : Math.ceil(total / limit);
 
         if (isApiRequest(req)) {
             return res.status(200).json({
                 success: true,
                 patientId: patient.patientId,
-                count: readings.length,
-                readings
+                readings,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages
+                }
             });
         }
 
@@ -134,6 +192,14 @@ const getHistory = async (req, res) => {
             user: req.user,
             patient,
             readings,
+            pagination: {
+                page,
+                limit,
+                total,
+                pages
+            },
+            startDate: req.query.startDate || "",
+            endDate: req.query.endDate || "",
             activePage: "history"
         });
     } catch (error) {

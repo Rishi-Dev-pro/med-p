@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 35 |
+| **Tasks Completed** | 37 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 11 |
-| **Overall Completion** | 76.1% |
+| **Tasks Not Started** | 9 |
+| **Overall Completion** | 80.4% |
 
 ---
 
@@ -167,8 +167,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-10.1` | Implement paginated telemetry endpoint (`GET /api/readings/:patientId`) with query params (`page`, `limit`, `startDate`, `endDate`) and RBAC checks | `NOT_STARTED` | Phase 9 | `src/controllers/readingController.js`, `src/routes/apiRoutes.js` | None (Not yet executed) | - | Enforces compound index `{ patientId: 1, timestamp: -1 }` |
-| `TASK-10.2` | Build Reading History table view with pagination controls and date range filters for patient and doctor views | `NOT_STARTED` | `TASK-10.1` | `src/views/patient/history.ejs`, `src/views/doctor/history.ejs` | None (Not yet executed) | - | Clinical chronological inspection |
+| `TASK-10.1` | Implement paginated telemetry endpoint (`GET /api/readings/:patientId`) with query params (`page`, `limit`, `startDate`, `endDate`) and RBAC checks | `DONE` | Phase 9 | `src/controllers/readingController.js`, `src/routes/apiRoutes.js`, `src/app.js` | `node tests/readingHistoryValidation.test.js` (Tests 1-40 PASS) | 2026-10-02 | Enforces compound index `{ patientId: 1, timestamp: -1 }`, limit clamped to 100, strict server-side RBAC, ISO timestamps |
+| `TASK-10.2` | Build Reading History table view with pagination controls and date range filters for patient and doctor views | `DONE` | `TASK-10.1` | `src/views/patient/history.ejs`, `src/views/doctor/history.ejs`, `src/controllers/patientController.js`, `src/controllers/doctorController.js` | `node tests/readingHistoryValidation.test.js` (Tests 41-50 PASS) | 2026-10-02 | Patient & Doctor chronological history tables with pagination controls, date pickers, CSV export stub, and patient selector |
 
 ---
 

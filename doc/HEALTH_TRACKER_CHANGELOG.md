@@ -5,6 +5,64 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 10: Reading History Engine & Paginated API
+- **Phase / Task:** PHASE 10 (`TASK-10.1`, `TASK-10.2`)
+- **Change:**
+  1. Compound Index & Database Verification:
+     - Verified compound index `{ patientId: 1, timestamp: -1 }` on `SensorReading` collection in MongoDB for high-performance, index-backed chronological retrieval (newest first).
+     - Confirmed zero database schema modifications, zero telemetry rewriting, and absolute immutability of historical `SensorReading.doctorId` snapshots.
+  2. Created `src/controllers/readingController.js`:
+     - `getReadings`: High-performance paginated REST endpoint (`GET /api/readings/:patientId`).
+     - Safe pagination: supports `page` (positive integer, default: 1) and `limit` (positive integer, default: 20, hard-clamped to max 100 for DOS prevention). Returns 400 Bad Request on invalid, non-integer, or non-positive `page`/`limit` inputs.
+     - Date range filtering: supports `startDate` and `endDate` with automatic boundary parsing (date-only `YYYY-MM-DD` normalized to full UTC day boundaries). Rejects invalid date formats and inverted date ranges (`startDate > endDate`) with 400 Bad Request.
+     - Database query: executes bounded `SensorReading.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).lean()` and `SensorReading.countDocuments(filter)` in parallel via `Promise.all`.
+     - Output payload: returns machine-readable ISO 8601 timestamps and comprehensive pagination metadata (`page`, `limit`, `total`, `pages`).
+  3. Created `src/routes/apiRoutes.js`:
+     - Mounted `GET /readings/:patientId` with `authenticate` and `requirePatientOwnership("patientId")`.
+     - Reuses existing authentication and role middleware without duplicate authorization logic.
+     - Rigorous RBAC: Patients can only query self; Doctors can only query currently assigned patients (`patient.doctorId === req.user.profileId`); Super Admins can query any patient.
+     - Tampering defense: `?patientId=` or `?doctorId=` query parameter injections are strictly ignored; identity is resolved exclusively from verified JWT context (`req.user.profileId`).
+  4. Updated `src/app.js`:
+     - Mounted `app.use("/api", apiRoutes)` to expose `/api/readings/:patientId`.
+  5. Enhanced Patient History UI (`src/views/patient/history.ejs` & `src/controllers/patientController.js`):
+     - Added server-side pagination and date filtering hydration in `patientController.getHistory`.
+     - Added date range picker inputs (`From`, `To`, `Apply Filter`, `Clear Filter`).
+     - Added full pagination controls (`Previous Page`, `Page X of Y`, `Next Page`, total records count).
+     - Added explicit CSV export stub button (`📥 Export CSV (Stub)`) alerting users that CSV export is scheduled for future telemetry enhancements, preventing unbounded data exports.
+  6. Enhanced Doctor History UI (`src/views/doctor/history.ejs` & `src/controllers/doctorController.js`):
+     - Added server-side pagination and date filtering hydration in `doctorController.getHistory`.
+     - Added assigned patient dropdown selector, strictly populating only patients currently assigned to the authenticated physician.
+     - Added date range pickers and pagination controls for clinical audit review.
+     - Added explicit CSV export stub button.
+  7. Comprehensive Automated Test Suite (`tests/readingHistoryValidation.test.js`):
+     - Created 50 automated tests covering:
+       - Database compound index existence & ordering `{ patientId: 1, timestamp: -1 }` (Tests 1-2).
+       - Authentication rejection: missing, invalid, expired, or suspended tokens (Tests 3-6).
+       - Patient authorization, isolation & tampering defense (Tests 7-9).
+       - Doctor authorization, unassigned/cross-doctor patient rejection & tampering defense (Tests 10-13).
+       - Super Admin access & non-admin privilege escalation defense (Tests 14-15).
+       - Pagination: default, custom page, custom limit, limit > 100 clamping, invalid inputs, out-of-range empty page (Tests 16-22).
+       - Sorting: newest-first descending timestamp validation (Tests 23-24).
+       - Date filtering: startDate, endDate, range, invalid format rejection, inverted range rejection (Tests 25-30).
+       - Response format: pagination metadata, total, page count, ISO timestamps, isolation (Tests 31-35).
+       - Data integrity: historical doctorId snapshot immutability & reassignment safety (Tests 36-37).
+       - Security & DOS: limit bounding, query parameter poisoning immunity (Tests 38-40).
+       - Frontend integration & UI: patient history table, pagination, date filtering, clear filter, doctor patient selector, doctor pagination, doctor date filtering, unauthorized patient isolation, CSV export stub (Tests 41-50).
+  8. Updated `package.json`:
+     - Added `test:history` script (`node tests/readingHistoryValidation.test.js`) and integrated into master `npm test` runner.
+- **Reason:**
+  Provide high-performance, secure, bounded, and indexed historical telemetry retrieval for clinical review, trend evaluation, and doctor caseload monitoring.
+- **Files Affected:**
+  - `package.json`
+  - `src/app.js`
+  - `src/controllers/readingController.js`
+  - `src/controllers/patientController.js`
+  - `src/controllers/doctorController.js`
+  - `src/routes/apiRoutes.js`
+  - `src/views/patient/history.ejs`
+  - `src/views/doctor/history.ejs`
+  - `tests/readingHistoryValidation.test.js`
+
 ### 2026-10-02 — Phase 9: Multi-Page Dashboard Architecture
 - **Phase / Task:** PHASE 9 (`TASK-9.1`, `TASK-9.2`, `TASK-9.3`)
 - **Change:**

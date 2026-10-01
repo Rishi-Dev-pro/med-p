@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 9: Multi-Page Dashboard Architecture** (Completed) |
-| **Current Task** | Phase 9 Completed — Awaiting Phase 10 Authorization (`TASK-10.1: Reading History Engine & Paginated API`) |
-| **Overall Progress** | **76.1%** (35 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming**, **Phase 7: Doctor Provisioning & Account Lifecycle**, **Phase 8: Patient ↔ Doctor Assignment Engine**, **Phase 9: Multi-Page Dashboard Architecture** (10 / 20) |
+| **Current Phase** | **PHASE 10: Reading History Engine & Paginated API** (Completed) |
+| **Current Task** | Phase 10 Completed — Awaiting Phase 11 Authorization (`TASK-11.1: Recent Readings Endpoint for Chart Hydration`) |
+| **Overall Progress** | **80.4%** (37 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming**, **Phase 7: Doctor Provisioning & Account Lifecycle**, **Phase 8: Patient ↔ Doctor Assignment Engine**, **Phase 9: Multi-Page Dashboard Architecture**, **Phase 10: Reading History Engine & Paginated API** (11 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-10.1` to `TASK-10.2` (Phase 10 deliverables) |
-| **Verification Status** | Phase 9 verified: `tests/multiPageDashboard.test.js` passed 40/40 tests; Full regression `npm test` passed 266/266 tests across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), Phase 6 (28), Phase 7 (40), Phase 8 (40), and Phase 9 (40). Zero regressions. |
-| **Last Updated Timestamp** | 2026-10-02 05:15:00 IST |
+| **Upcoming Tasks** | `TASK-11.1` to `TASK-11.2` (Phase 11 deliverables) |
+| **Verification Status** | Phase 10 verified: `tests/readingHistoryValidation.test.js` passed 50/50 tests; Full regression `npm test` passed 316/316 tests across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), Phase 6 (28), Phase 7 (40), Phase 8 (40), Phase 9 (40), and Phase 10 (50). Zero regressions. |
+| **Last Updated Timestamp** | 2026-10-02 05:25:00 IST |
 
 ---
 
@@ -39,7 +39,7 @@ gantt
     Patient Doctor Assignment Engine  :done, p8, 2026-10-02, 1d
     section Phase 9-13: Clinical Experience
     Multi-Page Dashboards             :done, p9, 2026-10-02, 1d
-    Reading History API               :p10, after p9, 2d
+    Reading History API               :done, p10, 2026-10-02, 1d
     Interactive Real-Time Charts      :p11, after p10, 2d
     Device Health Diagnostics         :p12, after p9, 2d
     System Audit Trail & Logging      :p13, after p8, 2d
@@ -69,7 +69,7 @@ gantt
 | **7** | Doctor Management (Admin Provisioning) | `DONE` | 4 / 4 | 100% |
 | **8** | Patient ↔ Doctor Assignment Engine | `DONE` | 2 / 2 | 100% |
 | **9** | Multi-Page Dashboard Architecture | `DONE` | 3 / 3 | 100% |
-| **10** | Reading History Engine & Paginated API | `NOT_STARTED` | 0 / 2 | 0% |
+| **10** | Reading History Engine & Paginated API | `DONE` | 2 / 2 | 100% |
 | **11** | Charts & Time-Series Data Visualization | `NOT_STARTED` | 0 / 2 | 0% |
 | **12** | Device Monitoring & Telemetry Health | `NOT_STARTED` | 0 / 2 | 0% |
 | **13** | Centralized System Activity & Audit Trail | `NOT_STARTED` | 0 / 3 | 0% |
@@ -84,7 +84,7 @@ gantt
 
 ## KNOWN DISCREPANCIES & RESOLUTIONS
 
-1. **Resolved in Phases 0 through 9:**
+1. **Resolved in Phases 0 through 10:**
    - Database schema models frozen (`User`, `Doctor`, `Patient`, `Device`, `SensorReading`, `ActivityLog`) with unique partial indexes.
    - IoT telemetry ingestion pipeline aligned to return 201 Created on valid write, 404 on unknown device, 403 on inactive device, and tolerate nullable `doctorId`.
    - Automated multi-device headless simulator script implemented (`tests/iotSimulator.js`).
@@ -97,9 +97,10 @@ gantt
    - **Doctor Provisioning & Account Lifecycle (Phase 7):** Clinical account creation, bcrypt credentials, activate/deactivate account synchronization, and audit logging.
    - **Patient ↔ Doctor Assignment Engine (Phase 8):** Server-authoritative assignment/reassignment/unassignment operations (`POST /api/admin/assignments`, `DELETE /api/admin/assignments/:patientId`). Strict enforcement: 1 patient has at most 1 current doctor, 1 doctor has many patients, new assignments allowed only to active doctors (`status === DOCTOR_STATUS.ACTIVE`). Doctor deactivation unassigns patients (`doctorId = null`) without auto-reassignment; reactivation requires explicit reassignment. Historical `SensorReading.doctorId` snapshots are immutable. Future telemetry & Socket.IO room routing (`doctor:<doctorId>`) seamlessly adapt without data corruption.
    - **Multi-Page Dashboard Architecture (Phase 9):** Split legacy single-page dashboards into dedicated, bookmarkable, server-rendered multi-page architectures across Patient (`/patient/overview`, `/patient/live`, `/patient/history`, `/patient/profile`), Doctor (`/doctor/overview`, `/doctor/patients`, `/doctor/monitor`, `/doctor/history`), and Admin (`/admin/overview`, `/admin/doctors`, `/admin/patients`, `/admin/devices`, `/admin/activity`). Every route enforces server-side RBAC. Navigation features real URLs with active indicator state and browser back/forward/refresh support. Page-specific hydration queries only required data per view. Identity strictly derived from authenticated JWT context, immune to client parameter tampering.
+   - **Reading History Engine & Paginated API (Phase 10):** High-performance paginated REST API (`GET /api/readings/:patientId`) powered by compound index `{ patientId: 1, timestamp: -1 }`. Strict server-side RBAC & ownership enforcement (patients can query self, doctors can query only assigned patients, super admins can query any patient). Safe pagination with page, limit clamped to 100, newest-first sorting, total & page counts, and ISO timestamps. Safe date range filtering (`startDate`, `endDate`). Enhanced Patient & Doctor History UI with tabular display, pagination controls, date pickers, and explicit CSV export stub. Zero schema mutations, zero telemetry rewriting.
 
 ---
 
 ## NEXT IMMEDIATE ACTIONS
-1. Commit Phase 9 implementation and push to GitHub.
-2. Await instruction before beginning Phase 10 (Reading History Engine & Paginated API).
+1. Commit Phase 10 implementation and push to GitHub.
+2. Await instruction before beginning Phase 11 (Charts & Time-Series Data Visualization).

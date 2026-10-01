@@ -18,7 +18,8 @@
     "test:doctor": "node tests/doctorManagementValidation.test.js",
     "test:assignment": "node tests/patientDoctorAssignmentValidation.test.js",
     "test:dashboard": "node tests/multiPageDashboard.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard"
+    "test:history": "node tests/readingHistoryValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history"
   },
   "keywords": [],
   "author": "",

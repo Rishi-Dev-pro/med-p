@@ -18,15 +18,49 @@
                 patient 
             }) %>
 
+            <!-- Filters & Actions Bar -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding: 18px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <form action="/patient/history" method="GET" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="startDate" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">From:</label>
+                        <input type="date" id="startDate" name="startDate" value="<%= typeof startDate !== 'undefined' ? startDate : '' %>" style="padding: 7px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="endDate" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em;">To:</label>
+                        <input type="date" id="endDate" name="endDate" value="<%= typeof endDate !== 'undefined' ? endDate : '' %>" style="padding: 7px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">
+                    </div>
+                    <button type="submit" style="padding: 7px 16px; background: var(--burnt-orange); border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s ease;">
+                        Apply Filter
+                    </button>
+                    <% if ((typeof startDate !== 'undefined' && startDate) || (typeof endDate !== 'undefined' && endDate)) { %>
+                        <a href="/patient/history" style="padding: 7px 12px; background: rgba(255,255,255,0.08); border-radius: 6px; color: var(--muted); font-size: 12px; text-decoration: none;">
+                            Clear Filter
+                        </a>
+                    <% } %>
+                </form>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button type="button" onclick="alert('CSV export coming soon (Scheduled for future telemetry enhancements).')" style="padding: 7px 14px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <span>📥</span> Export CSV (Stub)
+                    </button>
+                    <span style="font-size: 12px; color: var(--muted);">
+                        Total: <strong style="color: var(--text);"><%= (typeof pagination !== 'undefined' && pagination.total) ? pagination.total : (readings ? readings.length : 0) %></strong> records
+                    </span>
+                </div>
+            </div>
+
+            <!-- Historical Readings Table Panel -->
             <section class="section-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div>
                         <h2 style="font-size: 18px; font-weight: 700;">Recorded Biometric Sessions</h2>
                         <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">Chronological snapshots captured by your assigned telemetry unit</p>
                     </div>
-                    <span style="padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 999px; font-size: 12px; color: var(--muted);">
-                        <%= readings ? readings.length : 0 %> Recent Records
-                    </span>
+                    <% if (typeof pagination !== 'undefined' && pagination.pages > 1) { %>
+                        <span style="padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 999px; font-size: 12px; color: var(--muted);">
+                            Page <%= pagination.page %> of <%= pagination.pages %>
+                        </span>
+                    <% } %>
                 </div>
 
                 <% if (!readings || readings.length === 0) { %>
@@ -79,6 +113,41 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <% if (typeof pagination !== 'undefined' && pagination.pages > 1) { %>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);">
+                            <div>
+                                <% if (pagination.page > 1) { %>
+                                    <a href="/patient/history?page=<%= pagination.page - 1 %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                       style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
+                                        ← Previous Page
+                                    </a>
+                                <% } else { %>
+                                    <span style="padding: 8px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: var(--muted); font-size: 12px; cursor: not-allowed;">
+                                        ← Previous Page
+                                    </span>
+                                <% } %>
+                            </div>
+
+                            <span style="font-size: 12px; color: var(--muted);">
+                                Page <strong style="color: var(--text);"><%= pagination.page %></strong> of <strong style="color: var(--text);"><%= pagination.pages %></strong> (<%= pagination.total %> Total Records)
+                            </span>
+
+                            <div>
+                                <% if (pagination.page < pagination.pages) { %>
+                                    <a href="/patient/history?page=<%= pagination.page + 1 %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                       style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
+                                        Next Page →
+                                    </a>
+                                <% } else { %>
+                                    <span style="padding: 8px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; color: var(--muted); font-size: 12px; cursor: not-allowed;">
+                                        Next Page →
+                                    </span>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
                 <% } %>
             </section>
         </main>
