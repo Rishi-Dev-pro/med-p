@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 26 |
+| **Tasks Completed** | 30 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 20 |
-| **Overall Completion** | 56.5% |
+| **Tasks Not Started** | 16 |
+| **Overall Completion** | 65.2% |
 
 ---
 
@@ -131,10 +131,10 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-7.1` | Implement Doctor management endpoints (`GET /admin/doctors`, `POST /admin/doctors` with User account creation) | `NOT_STARTED` | Phase 4 | `src/controllers/adminDoctorController.js`, `src/routes/adminRoutes.js` | None (Not yet executed) | - | Super Admin provisions clinical accounts |
-| `TASK-7.2` | Implement Doctor status toggle with atomic `User.status` (`ACTIVE`/`SUSPENDED`) synchronization | `NOT_STARTED` | `TASK-7.1` | `src/controllers/adminDoctorController.js` | None (Not yet executed) | - | Blocks login immediately on suspension |
-| `TASK-7.3` | Implement Doctor removal logic: unassign affected patients (`doctorId = null`), preserve historical readings, suspend User, append audit log | `NOT_STARTED` | `TASK-7.1` | `src/controllers/adminDoctorController.js` | None (Not yet executed) | - | Never cascades deletion to patients or readings |
-| `TASK-7.4` | Build Doctor Management UI with directory, credential generation modal, and deactivation toggles | `NOT_STARTED` | `TASK-7.1` - `TASK-7.3` | `src/views/admin/doctors.ejs` | None (Not yet executed) | - | Admin clinical staff management |
+| `TASK-7.1` | Implement Doctor management endpoints (`GET /admin/doctors`, `POST /admin/doctors` with User account creation) | `DONE` | Phase 4 | `src/controllers/adminDoctorController.js`, `src/routes/adminRoutes.js` | `node tests/doctorManagementValidation.test.js` (Tests 1-15, 25-28 PASS) | 2026-10-02 | Super Admin provisions clinical accounts; generated credentials; bcrypt hashed |
+| `TASK-7.2` | Implement Doctor status toggle with atomic `User.status` (`ACTIVE`/`SUSPENDED`) synchronization | `DONE` | `TASK-7.1` | `src/controllers/adminDoctorController.js`, `src/controllers/authController.js` | `node tests/doctorManagementValidation.test.js` (Tests 16-24, 33-35 PASS) | 2026-10-02 | Blocks login immediately on deactivation/suspension; idempotent reactivation |
+| `TASK-7.3` | Implement Doctor removal logic: safe unassigned deletion only, preserve historical readings, append audit log | `DONE` | `TASK-7.1` | `src/controllers/adminDoctorController.js` | `node tests/doctorManagementValidation.test.js` (Tests 36-40 PASS) | 2026-10-02 | Never cascades deletion to patients or readings; prevents dangling references |
+| `TASK-7.4` | Build Doctor Management UI with directory, credential generation modal, and deactivation toggles | `DONE` | `TASK-7.1` - `TASK-7.3` | `src/views/admin/doctors.ejs`, `src/views/admin/doctorDetail.ejs` | `node tests/doctorManagementValidation.test.js` (Tests 25-28 PASS) | 2026-10-02 | Admin clinical staff management console with one-time credentials modal |
 
 ---
 

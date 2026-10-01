@@ -7,7 +7,7 @@ const User = require("../models/User");
 const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const ActivityLog = require("../models/ActivityLog");
-const { ROLES, ACCOUNT_STATUS, DEVICE_STATUS, AUDIT_ACTIONS, ACTOR_ROLES, TARGET_TYPES } = require("../config/constants");
+const { ROLES, ACCOUNT_STATUS, DOCTOR_STATUS, DEVICE_STATUS, AUDIT_ACTIONS, ACTOR_ROLES, TARGET_TYPES } = require("../config/constants");
 const { hashPassword, comparePassword, generateToken } = require("../utils/authUtils");
 const { COOKIE_NAME, getCookieOptions } = require("../config/auth");
 
@@ -303,6 +303,18 @@ const login = async (req, res) => {
                 success: false,
                 message: "Account is suspended. Authentication rejected."
             });
+        }
+
+        // 4b. Verify Doctor-specific clinical profile status
+        if (user.role === ROLES.DOCTOR && user.profileId) {
+            const Doctor = require("../models/Doctor");
+            const doctorProfile = await Doctor.findOne({ doctorId: user.profileId }).select("status").lean();
+            if (doctorProfile && doctorProfile.status !== DOCTOR_STATUS.ACTIVE) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Account is suspended. Authentication rejected."
+                });
+            }
         }
 
         // 5. Verify password using bcrypt

@@ -5,6 +5,64 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 7: Doctor Provisioning, Credential Management & Account Lifecycle
+- **Phase / Task:** PHASE 7 (`TASK-7.1`, `TASK-7.2`, `TASK-7.3`, `TASK-7.4`)
+- **Change:**
+  1. Created `src/controllers/adminDoctorController.js`:
+     - `createDoctor`: Super Admin-only physician provisioning API (`POST /api/admin/doctors`). Validates name, normalizes email and username, rejects duplicate email across User and Doctor, rejects duplicate username, forces User role to `ROLES.DOCTOR` (client role spoofing discarded), generates secure random initial password or accepts optional admin password (>= 6 chars), hashes password with `bcryptjs` (salt rounds >= 10), creates User and Doctor profile with 1:1 invariant, compensation rollback on partial failures, logs `DOCTOR_CREATED` in `ActivityLog` (never logs plaintext password or password hash), returns single-use credentials payload only in the 201 response.
+     - `getDoctors`: Lists all physicians with enriched data (`doctorId`, `name`, `email`, `username`, `phone`, `specialization`, `specialty`, `status`, `accountStatus`, `assignedPatientCount`, `createdAt`). Strictly strips passwordHash, plaintext passwords, and secrets. Supports both JSON API and HTML view rendering.
+     - `getDoctorById`: Retrieves detailed physician profile, linked User account status, assigned patient count, read-only list of assigned patients (`patientId`, `name`, `email`, `age`, `gender`, `deviceId`), and recent `ActivityLog` audit stream. Strictly excludes credentials and secrets.
+     - `activateDoctor`: PATCH endpoint (`PATCH /api/admin/doctors/:doctorId/activate`). Sets `Doctor.status = 'ACTIVE'` and linked `User.status = 'ACTIVE'`. Idempotent for already active accounts. Logs `DOCTOR_ACTIVATED` in `ActivityLog`.
+     - `deactivateDoctor`: PATCH endpoint (`PATCH /api/admin/doctors/:doctorId/deactivate`). Sets `Doctor.status = 'INACTIVE'` and linked `User.status = 'SUSPENDED'`. Immediately blocks login authentication and WebSocket connections while preserving existing patient relationships and historical telemetry intact. Idempotent for already inactive accounts. Logs `DOCTOR_DEACTIVATED` in `ActivityLog`.
+     - `deleteDoctor`: DELETE endpoint (`DELETE /api/admin/doctors/:doctorId`). Permitted only for unassigned doctors (`assignedPatientCount === 0`); rejects with 400 Bad Request if doctor has assigned patients (directing to reassign or deactivate). Atomically removes Doctor profile and linked User account to eliminate dangling references, preserves historical `SensorReading` records, and logs `DOCTOR_REMOVED` in `ActivityLog`.
+  2. Updated `src/config/constants.js`:
+     - Added `DOCTOR_ACTIVATED: "DOCTOR_ACTIVATED"` and `DOCTOR_DEACTIVATED: "DOCTOR_DEACTIVATED"` to `AUDIT_ACTIONS` enum.
+  3. Enhanced `src/models/Doctor.js`:
+     - Added virtual `specialty` getter and setter for seamless backwards compatibility across legacy and alternate views.
+  4. Updated `src/controllers/adminController.js`:
+     - Delegated `getDoctors` to `adminDoctorController.getDoctors`.
+  5. Updated `src/routes/adminRoutes.js`:
+     - Mounted `POST /doctors`, `GET /doctors`, `GET /doctors/:doctorId`, `PATCH /doctors/:doctorId/activate`, `PATCH /doctors/:doctorId/deactivate`, and `DELETE /doctors/:doctorId`.
+     - All routes guarded by `authenticate` and `requireRole(ROLES.SUPER_ADMIN)`.
+  6. Updated `src/controllers/authController.js`:
+     - Enhanced login authentication to verify doctor profile status in addition to user account status, preventing deactivated or suspended doctors from authenticating.
+  7. Upgraded Admin UI (`src/views/admin/doctors.ejs` & `src/views/admin/doctorDetail.ejs`):
+     - Transformed `/admin/doctors` from a read-only registry into an interactive Doctor Management Console.
+     - Added Provision Doctor modal with field validation, specialty selector, and optional custom password field.
+     - Added one-time Credentials Presentation modal with clean display of doctor ID, name, email, username, temporary password, and "Copy Password" button.
+     - Added confirmation modal for Activate / Deactivate actions detailing the authentication consequences.
+     - Built dedicated Doctor Detail view (`src/views/admin/doctorDetail.ejs`) displaying physician profile, clinical status, read-only assigned patient inventory, and audit trail.
+  8. Implemented Comprehensive Phase 7 Test Suite (`tests/doctorManagementValidation.test.js`):
+     - 40 automated tests covering: provisioning by Super Admin (201), patient rejection (403), doctor rejection (403), unauthenticated rejection (401), duplicate email rejection (400), duplicate username rejection (400), immutable DOCTOR role enforcement, SUPER_ADMIN spoofing defense, PATIENT spoofing defense, User <-> Doctor 1:1 relationship integrity, credential generation, bcrypt hashing verification, plaintext non-persistence, exclusion from list APIs, exclusion from ActivityLog, deactivation by Super Admin, reactivation by Super Admin, unauthorized deactivation rejection, authentication synchronization (`User.status` to `SUSPENDED` / `ACTIVE`), idempotent activation/deactivation, listing and details inspection, secret exclusion, patient count correctness, audit logging (`DOCTOR_CREATED`, `DOCTOR_ACTIVATED`, `DOCTOR_DEACTIVATED`, with zero leaked secrets), doctor login compatibility (active succeeds, deactivated returns 403 suspension notice, reactivated succeeds again), telemetry preservation, patient record preservation, device ownership preservation, Phase 5 device lifecycle compatibility, and User/Doctor invariant consistency.
+  9. Updated `package.json`:
+     - Added `test:doctor` script (`node tests/doctorManagementValidation.test.js`) and incorporated it into the master `npm test` script.
+- **Reason:**
+  Establish secure, Super Admin-governed physician provisioning, temporary credential issuance, and account lifecycle controls without public doctor self-registration, preserving existing clinical data and Phase 8 boundaries.
+- **Files Affected:**
+  - `src/config/constants.js`
+  - `src/models/Doctor.js`
+  - `src/controllers/adminDoctorController.js`
+  - `src/controllers/adminController.js`
+  - `src/controllers/authController.js`
+  - `src/routes/adminRoutes.js`
+  - `src/views/admin/doctors.ejs`
+  - `src/views/admin/doctorDetail.ejs`
+  - `package.json`
+  - `tests/doctorManagementValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/doctorManagementValidation.test.js`: 40/40 tests passed.
+  - `node tests/schemaValidation.test.js`: 10/10 tests passed (Phase 0 regression).
+  - `node tests/iotSimulator.test.js`: 10/10 tests passed (Phase 1 regression).
+  - `node tests/authValidation.test.js`: 20/20 tests passed (Phase 2 regression).
+  - `node tests/rbacValidation.test.js`: 24/24 tests passed (Phase 3 regression).
+  - `node tests/adminPortalValidation.test.js`: 20/20 tests passed (Phase 4 regression).
+  - `node tests/deviceManagementValidation.test.js`: 34/34 tests passed (Phase 5 regression).
+  - `node tests/patientRegistrationValidation.test.js`: 28/28 tests passed (Phase 6 regression).
+  - `npm test`: 186/186 total tests passed with zero failures across all 8 test suites.
+
 ### 2026-10-01 — Phase 6: Patient Registration UI & Real-Time Device Claim Validation
 - **Phase / Task:** PHASE 6 (`TASK-6.1`, `TASK-6.2`)
 - **Change:**

@@ -4,6 +4,7 @@ const { requireRole } = require("../middleware/roleMiddleware");
 const { ROLES } = require("../config/constants");
 const adminController = require("../controllers/adminController");
 const adminDeviceController = require("../controllers/adminDeviceController");
+const adminDoctorController = require("../controllers/adminDoctorController");
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const router = express.Router();
  * Super Admin Protected HTML & API Routes
  * Health Tracker — Phase 4: Super Admin Portal & Layout
  * Health Tracker — Phase 5: Hardware Device Management & Lifecycle
+ * Health Tracker — Phase 7: Doctor Provisioning & Account Lifecycle
  *
  * Every route requires valid JWT authentication and role === 'SUPER_ADMIN'.
  */
@@ -19,8 +21,15 @@ const router = express.Router();
 router.get("/", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
 router.get("/overview", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
 
+// Phase 7 Doctor Management & Lifecycle Endpoints
+router.get("/doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.getDoctors);
+router.post("/doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.createDoctor);
+router.get("/doctors/:doctorId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.getDoctorById);
+router.patch("/doctors/:doctorId/activate", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.activateDoctor);
+router.patch("/doctors/:doctorId/deactivate", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.deactivateDoctor);
+router.delete("/doctors/:doctorId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.deleteDoctor);
+
 // Super Admin Management Foundations
-router.get("/doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getDoctors);
 router.get("/patients", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getPatients);
 router.get("/activity", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getActivity);
 

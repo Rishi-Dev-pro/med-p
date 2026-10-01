@@ -7,15 +7,15 @@
 
 | Metric | Status |
 | :--- | :--- |
-| **Current Phase** | **PHASE 7: Doctor Management (Admin Provisioning & Lifecycle)** (Phase 6 Completed) |
-| **Current Task** | Awaiting Phase 7 Authorization (`TASK-7.1: Implement Doctor management endpoints`) |
-| **Overall Progress** | **56.5%** (26 of 46 tasks completed across 20 phases) |
-| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming** (7 / 20) |
+| **Current Phase** | **PHASE 8: Patient ↔ Doctor Assignment Engine** (Phase 7 Completed) |
+| **Current Task** | Awaiting Phase 8 Authorization (`TASK-8.1: Implement patient reassignment endpoint`) |
+| **Overall Progress** | **65.2%** (30 of 46 tasks completed across 20 phases) |
+| **Completed Phases** | **Phase 0: Schema Freeze**, **Phase 1: IoT Simulator**, **Phase 2: Auth Foundation**, **Phase 3: RBAC & Socket Auth**, **Phase 4: Super Admin Foundation**, **Phase 5: Hardware Device Management**, **Phase 6: Patient Registration & Device Claiming**, **Phase 7: Doctor Provisioning & Account Lifecycle** (8 / 20) |
 | **Active Tasks** | None |
 | **Blocked Tasks** | None |
-| **Upcoming Tasks** | `TASK-7.1` to `TASK-7.4` (Phase 7 deliverables) |
-| **Verification Status** | Phase 6 verified: `tests/patientRegistrationValidation.test.js` passed 28/28 tests; All 146 regression tests passed across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), and Phase 6 (28). |
-| **Last Updated Timestamp** | 2026-10-01 01:38:00 IST |
+| **Upcoming Tasks** | `TASK-8.1` to `TASK-8.2` (Phase 8 deliverables) |
+| **Verification Status** | Phase 7 verified: `tests/doctorManagementValidation.test.js` passed 40/40 tests; All 186 regression tests passed across Phase 0 (10), Phase 1 (10), Phase 2 (20), Phase 3 (24), Phase 4 (20), Phase 5 (34), Phase 6 (28), and Phase 7 (40). Zero regressions. |
+| **Last Updated Timestamp** | 2026-10-02 00:40:00 IST |
 
 ---
 
@@ -35,7 +35,7 @@ gantt
     Super Admin Portal Skeleton       :done, p4, 2026-09-30, 1d
     Hardware Device Management        :done, p5, 2026-10-01, 1d
     Patient Registration & Claiming   :done, p6, 2026-10-01, 1d
-    Doctor Provisioning & Lifecycle   :p7, after p6, 2d
+    Doctor Provisioning & Lifecycle   :done, p7, 2026-10-02, 1d
     Patient Doctor Assignment Engine  :p8, after p7, 2d
     section Phase 9-13: Clinical Experience
     Multi-Page Dashboards             :p9, after p8, 3d
@@ -66,7 +66,7 @@ gantt
 | **4** | Super Admin Foundation & Core Dashboard | `DONE` | 3 / 3 | 100% |
 | **5** | Hardware Device Management | `DONE` | 3 / 3 | 100% |
 | **6** | Patient Registration & Device Claiming | `DONE` | 2 / 2 | 100% |
-| **7** | Doctor Management (Admin Provisioning) | `NOT_STARTED` | 0 / 4 | 0% |
+| **7** | Doctor Management (Admin Provisioning) | `DONE` | 4 / 4 | 100% |
 | **8** | Patient ↔ Doctor Assignment Engine | `NOT_STARTED` | 0 / 2 | 0% |
 | **9** | Multi-Page Dashboard Architecture | `NOT_STARTED` | 0 / 3 | 0% |
 | **10** | Reading History Engine & Paginated API | `NOT_STARTED` | 0 / 2 | 0% |

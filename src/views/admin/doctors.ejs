@@ -14,30 +14,87 @@
     <div class="admin-main">
         <%- include("partials/topbar", { 
             pageTitle: "Doctors Directory", 
-            pageSubtitle: "Physician registry, specialties, and clinical patient loads",
+            pageSubtitle: "Doctor provisioning, secure credential issuance, status management, and clinical account lifecycle",
             user 
         }) %>
 
         <main class="admin-content-body">
-            <!-- Phase 7 Foundation Notice -->
-            <div class="foundation-banner">
-                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+            <!-- Phase 7 Engine Banner -->
+            <div class="foundation-banner" style="border-left: 3px solid var(--burnt-orange);">
+                <span class="foundation-badge" style="background: var(--burnt-orange);">PHASE 7 ENGINE</span>
                 <p>
-                    <strong>Read-Only Clinical Registry:</strong> Active physician directory sourced directly from MongoDB. Full Doctor Provisioning, Credential Reset, and Suspension controls will be activated in <strong>Phase 7 (Doctor Management)</strong>.
+                    <strong>Doctor Account Lifecycle Engine:</strong> Full physician management is active. Super Admins can provision clinical accounts, issue initial temporary credentials, toggle clinical availability (Activate/Deactivate), monitor account states, and safely manage clinical inventory.
                 </p>
             </div>
 
-            <section class="section-panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">Physician Directory</h2>
-                    <span class="panel-badge"><%= doctors ? doctors.length : 0 %> Doctors</span>
+            <!-- Summary KPI Cards -->
+            <div class="admin-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Total Physicians</span>
+                        <span class="metric-icon">👨‍⚕️</span>
+                    </div>
+                    <div class="metric-value"><%= doctors ? doctors.length : 0 %></div>
+                    <span class="metric-sub">Registered clinical accounts</span>
                 </div>
+
+                <%
+                    const activeCount = doctors ? doctors.filter(d => (d.status === 'ACTIVE' || d.status === 'active')).length : 0;
+                    const inactiveCount = doctors ? (doctors.length - activeCount) : 0;
+                    const totalPatients = doctors ? doctors.reduce((acc, d) => acc + (d.assignedPatientCount || 0), 0) : 0;
+                %>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Active Doctors</span>
+                        <span class="metric-icon">🟢</span>
+                    </div>
+                    <div class="metric-value" style="color: #4ADE80;"><%= activeCount %></div>
+                    <span class="metric-sub">Eligible for clinical assignments</span>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Inactive / Suspended</span>
+                        <span class="metric-icon">⏸️</span>
+                    </div>
+                    <div class="metric-value" style="color: <%= inactiveCount > 0 ? '#F87171' : 'var(--muted)' %>;"><%= inactiveCount %></div>
+                    <span class="metric-sub">Login & assignment blocked</span>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Total Assigned Patients</span>
+                        <span class="metric-icon">👥</span>
+                    </div>
+                    <div class="metric-value"><%= totalPatients %></div>
+                    <span class="metric-sub">Across all physicians</span>
+                </div>
+            </div>
+
+            <!-- Operations Section -->
+            <section class="section-panel">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h2 class="panel-title">Physician Directory</h2>
+                        <span class="panel-badge" id="doctorCountBadge"><%= doctors ? doctors.length : 0 %> Doctors</span>
+                    </div>
+                    <button type="button" class="btn-primary-action" id="openCreateDoctorBtn">
+                        <span>+</span> Provision Doctor
+                    </button>
+                </div>
+
+                <!-- Toast Alert -->
+                <div id="operationAlert" style="display: none; margin: 16px 0; padding: 12px 16px; border-radius: 8px; font-size: 13px;"></div>
 
                 <% if (!doctors || doctors.length === 0) { %>
                     <div class="empty-state">
                         <div class="empty-state-icon">👨‍⚕️</div>
                         <h3>No physicians registered</h3>
-                        <p>No doctor accounts currently exist in the database. Clinical accounts will appear here once provisioned.</p>
+                        <p>No doctor accounts currently exist in the database. Click "Provision Doctor" to create your first clinical staff account.</p>
+                        <button type="button" class="btn-primary-action" style="margin-top: 16px;" onclick="document.getElementById('openCreateDoctorBtn').click()">
+                            <span>+</span> Provision Doctor Now
+                        </button>
                     </div>
                 <% } else { %>
                     <div class="table-responsive">
@@ -45,31 +102,85 @@
                             <thead>
                                 <tr>
                                     <th>Doctor ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
+                                    <th>Physician Name</th>
+                                    <th>Email / Username</th>
                                     <th>Specialization</th>
-                                    <th>Status</th>
-                                    <th>Assigned Patients</th>
+                                    <th>Doctor Status</th>
+                                    <th>Account Status</th>
+                                    <th>Patients</th>
                                     <th>Enrolled</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% doctors.forEach(doc => { %>
-                                    <tr>
-                                        <td class="id-cell"><%= doc.doctorId %></td>
-                                        <td><strong><%= doc.name %></strong></td>
-                                        <td><%= doc.email %></td>
-                                        <td><%= doc.specialty %></td>
+                                <% doctors.forEach(doc => { 
+                                    const isDocActive = (doc.status === 'ACTIVE' || doc.status === 'active');
+                                    const isUserActive = (doc.accountStatus === 'ACTIVE' || doc.accountStatus === 'active');
+                                %>
+                                    <tr id="row-<%= doc.doctorId %>">
+                                        <td class="id-cell">
+                                            <a href="/admin/doctors/<%= doc.doctorId %>" style="color: var(--burnt-orange); text-decoration: none; font-weight: 700;">
+                                                <%= doc.doctorId %>
+                                            </a>
+                                        </td>
                                         <td>
-                                            <span class="status-pill <%= doc.status === 'ACTIVE' ? 'active-pill' : 'inactive-pill' %>">
-                                                <%= doc.status %>
+                                            <strong><%= doc.name %></strong>
+                                            <% if (doc.phone) { %>
+                                                <div class="metric-sub" style="font-size: 11px;"><%= doc.phone %></div>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <div><%= doc.email %></div>
+                                            <% if (doc.username) { %>
+                                                <div class="metric-sub" style="font-size: 11px;">@<%= doc.username %></div>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <span class="status-pill" style="background: rgba(255, 244, 214, 0.08); color: var(--vanilla); border: 1px solid rgba(255, 244, 214, 0.15);">
+                                                <%= doc.specialization || doc.specialty || "General Medicine" %>
                                             </span>
                                         </td>
                                         <td>
-                                            <strong><%= doc.assignedPatientCount %></strong>
-                                            <span class="metric-sub">assigned</span>
+                                            <span class="status-pill <%= isDocActive ? 'active-pill' : 'inactive-pill' %>" id="doc-status-<%= doc.doctorId %>">
+                                                <%= (doc.status || 'ACTIVE').toUpperCase() %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="status-pill <%= isUserActive ? 'active-pill' : 'inactive-pill' %>" id="user-status-<%= doc.doctorId %>">
+                                                <%= (doc.accountStatus || 'ACTIVE').toUpperCase() %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong><%= doc.assignedPatientCount || 0 %></strong>
+                                            <span class="metric-sub">patients</span>
                                         </td>
                                         <td><%= doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "—" %></td>
+                                        <td>
+                                            <div class="action-btn-group">
+                                                <% if (isDocActive) { %>
+                                                    <button type="button" 
+                                                            class="btn-action btn-deactivate" 
+                                                            title="Deactivate doctor account"
+                                                            onclick="openStatusModal('<%= doc.doctorId %>', '<%= doc.name %>', false)">
+                                                        Deactivate
+                                                    </button>
+                                                <% } else { %>
+                                                    <button type="button" 
+                                                            class="btn-action btn-activate" 
+                                                            title="Reactivate doctor account"
+                                                            onclick="openStatusModal('<%= doc.doctorId %>', '<%= doc.name %>', true)">
+                                                        Activate
+                                                    </button>
+                                                <% } %>
+
+                                                <a href="/admin/doctors/<%= doc.doctorId %>" 
+                                                   class="btn-action btn-reset" 
+                                                   style="text-decoration: none; text-align: center;" 
+                                                   title="View doctor profile & clinical activity">
+                                                    Details
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>
@@ -80,5 +191,334 @@
         </main>
     </div>
 </div>
+
+<!-- ========================================================
+     MODAL 1: PROVISION / CREATE DOCTOR MODAL
+     ======================================================== -->
+<div class="modal-backdrop" id="createDoctorModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><span>👨‍⚕️</span> Provision Physician Account</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('createDoctorModal')">&times;</button>
+        </div>
+        <form id="createDoctorForm" onsubmit="handleCreateDoctor(event)">
+            <div class="modal-body">
+                <p style="margin-top: 0; color: var(--muted); font-size: 13px;">
+                    Provision a clinical physician account. Initial temporary login credentials will be generated and displayed once upon completion.
+                </p>
+
+                <div class="modal-field">
+                    <label for="newDoctorName">Physician Full Name *</label>
+                    <input type="text" id="newDoctorName" class="modal-input" placeholder="e.g. Dr. Jennifer Wu" required autocomplete="off" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="newDoctorEmail">Email Address (Login Identifier) *</label>
+                    <input type="email" id="newDoctorEmail" class="modal-input" placeholder="e.g. jennifer.wu@healthtrack.org" required autocomplete="off" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="newDoctorUsername">Username (Optional)</label>
+                    <input type="text" id="newDoctorUsername" class="modal-input" placeholder="Leave blank to auto-generate (e.g. dr_jennifer_wu)" autocomplete="off" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="newDoctorSpecialization">Medical Specialization</label>
+                    <select id="newDoctorSpecialization" class="modal-input">
+                        <option value="General Medicine">General Medicine</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="Endocrinology">Endocrinology</option>
+                        <option value="Pulmonology">Pulmonology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="Diagnostic Medicine">Diagnostic Medicine</option>
+                    </select>
+                </div>
+
+                <div class="modal-field">
+                    <label for="newDoctorPhone">Contact Phone Number (Optional)</label>
+                    <input type="tel" id="newDoctorPhone" class="modal-input" placeholder="e.g. +1 555-019-2834" autocomplete="off" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="newDoctorPassword">Temporary Initial Password (Optional)</label>
+                    <input type="password" id="newDoctorPassword" class="modal-input" placeholder="Leave blank to auto-generate a secure random password" autocomplete="new-password" />
+                    <span style="font-size: 11px; color: var(--muted); margin-top: 4px; display: block;">
+                        Minimum 6 characters. If left empty, a secure temporary password will be generated automatically.
+                    </span>
+                </div>
+
+                <div id="createDoctorError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 8px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('createDoctorModal')">Cancel</button>
+                <button type="submit" class="btn-primary-action" id="submitCreateDocBtn">Provision Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL 2: CREDENTIALS PRESENTATION MODAL (ONCE-ONLY DISPLAY)
+     ======================================================== -->
+<div class="modal-backdrop" id="credentialsModal">
+    <div class="modal-card">
+        <div class="modal-header" style="background: rgba(34, 197, 94, 0.08); border-bottom: 1px solid rgba(34, 197, 94, 0.2);">
+            <h3 style="color: #4ADE80;"><span>✅</span> Physician Account Provisioned</h3>
+            <button type="button" class="modal-close-btn" onclick="finishCredentialsView()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-warning-box" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #F59E0B; color: #FCD34D;">
+                <strong>ONE-TIME CREDENTIAL NOTICE:</strong>
+                Please copy and securely provide these initial login credentials to the physician. For security, this plaintext password will <strong>never</strong> be displayed again.
+            </div>
+
+            <div style="background: #11100E; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: var(--muted);">Doctor ID:</span>
+                    <strong id="credDoctorId" style="color: var(--burnt-orange);">—</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: var(--muted);">Physician Name:</span>
+                    <strong id="credDoctorName" style="color: var(--vanilla);">—</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: var(--muted);">Login Username:</span>
+                    <strong id="credUsername" style="color: var(--vanilla);">—</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                    <span style="color: var(--muted);">Login Email:</span>
+                    <strong id="credEmail" style="color: var(--vanilla);">—</strong>
+                </div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px;">Initial Temporary Password</div>
+                        <code id="credPassword" style="font-size: 15px; color: #4ADE80; font-weight: 700; letter-spacing: 1px;">—</code>
+                    </div>
+                    <button type="button" class="btn-secondary" id="copyPasswordBtn" onclick="copyPasswordToClipboard()" style="padding: 6px 12px; font-size: 12px;">
+                        Copy Password
+                    </button>
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--muted); margin-bottom: 0;">
+                The doctor will be able to log in immediately at <code>/login</code> using either their email or username and this initial password.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-primary-action" onclick="finishCredentialsView()">Done & Return to Directory</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     MODAL 3: STATUS CONFIRMATION MODAL (ACTIVATE / DEACTIVATE)
+     ======================================================== -->
+<div class="modal-backdrop" id="statusConfirmModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="statusModalTitle"><span>⚠️</span> Confirm Doctor Status Change</h3>
+            <button type="button" class="modal-close-btn" onclick="closeModal('statusConfirmModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="statusModalWarning" class="modal-warning-box">
+                <!-- Dynamic text injected by JS -->
+            </div>
+
+            <ul style="padding-left: 20px; font-size: 13px; line-height: 1.7; color: var(--text);">
+                <li><strong>Doctor Account:</strong> Status will change to <code id="targetStatusLabel">—</code>.</li>
+                <li><strong>Authentication:</strong> Linked User account will be <span id="authStatusLabel">—</span>.</li>
+                <li><strong>Historical Data:</strong> All historical readings and telemetry snapshots remain <strong>strictly preserved</strong>.</li>
+                <li><strong>Patient Relationships:</strong> Existing assigned patients will <strong>NOT</strong> be deleted.</li>
+            </ul>
+
+            <div id="statusChangeError" style="display: none; color: #EF4444; font-size: 12px; margin-top: 8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="closeModal('statusConfirmModal')">Cancel</button>
+            <button type="button" class="btn-warning-confirm" id="confirmStatusBtn" onclick="executeStatusChange()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================
+     CLIENT-SIDE DOCTOR LIFECYCLE SCRIPTS
+     ======================================================== -->
+<script>
+    let activeDoctorId = null;
+    let targetActivateState = false;
+
+    function showAlert(message, isSuccess = true) {
+        const el = document.getElementById("operationAlert");
+        el.style.display = "block";
+        el.style.backgroundColor = isSuccess ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)";
+        el.style.color = isSuccess ? "#4ADE80" : "#F87171";
+        el.style.border = `1px solid ${isSuccess ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`;
+        el.textContent = message;
+        setTimeout(() => {
+            el.style.display = "none";
+        }, 5000);
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add("open");
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove("open");
+    }
+
+    // Provision Doctor Button
+    document.getElementById("openCreateDoctorBtn").addEventListener("click", () => {
+        document.getElementById("createDoctorForm").reset();
+        document.getElementById("createDoctorError").style.display = "none";
+        openModal("createDoctorModal");
+    });
+
+    // Handle Provision Doctor Form Submission
+    async function handleCreateDoctor(e) {
+        e.preventDefault();
+        const name = document.getElementById("newDoctorName").value.trim();
+        const email = document.getElementById("newDoctorEmail").value.trim();
+        const username = document.getElementById("newDoctorUsername").value.trim();
+        const specialization = document.getElementById("newDoctorSpecialization").value;
+        const phone = document.getElementById("newDoctorPhone").value.trim();
+        const password = document.getElementById("newDoctorPassword").value;
+
+        const errEl = document.getElementById("createDoctorError");
+        const submitBtn = document.getElementById("submitCreateDocBtn");
+
+        errEl.style.display = "none";
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Provisioning...";
+
+        try {
+            const res = await fetch("/api/admin/doctors", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    username: username || undefined,
+                    specialization,
+                    phone: phone || undefined,
+                    password: password || undefined
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errEl.textContent = data.message || "Failed to provision doctor account";
+                errEl.style.display = "block";
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Provision Account";
+                return;
+            }
+
+            // Close creation modal
+            closeModal("createDoctorModal");
+
+            // Populate credentials display modal
+            document.getElementById("credDoctorId").textContent = data.doctor.doctorId;
+            document.getElementById("credDoctorName").textContent = data.doctor.name;
+            document.getElementById("credUsername").textContent = data.credentials.username;
+            document.getElementById("credEmail").textContent = data.credentials.email;
+            document.getElementById("credPassword").textContent = data.credentials.initialPassword;
+
+            // Open credentials modal
+            openModal("credentialsModal");
+        } catch (err) {
+            errEl.textContent = "Network error communicating with server";
+            errEl.style.display = "block";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Provision Account";
+        }
+    }
+
+    function copyPasswordToClipboard() {
+        const pwd = document.getElementById("credPassword").textContent;
+        const btn = document.getElementById("copyPasswordBtn");
+        navigator.clipboard.writeText(pwd).then(() => {
+            btn.textContent = "Copied!";
+            setTimeout(() => { btn.textContent = "Copy Password"; }, 2000);
+        }).catch(() => {
+            btn.textContent = "Copy failed";
+        });
+    }
+
+    function finishCredentialsView() {
+        closeModal("credentialsModal");
+        window.location.reload();
+    }
+
+    // Status Confirmation Modal
+    function openStatusModal(doctorId, doctorName, shouldActivate) {
+        activeDoctorId = doctorId;
+        targetActivateState = shouldActivate;
+
+        const modalTitle = document.getElementById("statusModalTitle");
+        const modalWarning = document.getElementById("statusModalWarning");
+        const statusLabel = document.getElementById("targetStatusLabel");
+        const authLabel = document.getElementById("authStatusLabel");
+        const confirmBtn = document.getElementById("confirmStatusBtn");
+        document.getElementById("statusChangeError").style.display = "none";
+
+        if (shouldActivate) {
+            modalTitle.innerHTML = "<span>🟢</span> Confirm Doctor Reactivation";
+            modalWarning.innerHTML = `<strong>REACTIVATING DOCTOR ACCOUNT:</strong> Reactivating will restore login access and mark <strong>${doctorName}</strong> (${doctorId}) as eligible for clinical care.`;
+            statusLabel.textContent = "ACTIVE";
+            authLabel.textContent = "restored to ACTIVE (Login permitted)";
+            confirmBtn.className = "btn-primary-action";
+            confirmBtn.textContent = "Confirm Reactivation";
+        } else {
+            modalTitle.innerHTML = "<span>⚠️</span> Confirm Doctor Deactivation";
+            modalWarning.innerHTML = `<strong>DEACTIVATING DOCTOR ACCOUNT:</strong> Deactivating will suspend login authentication for <strong>${doctorName}</strong> (${doctorId}). Existing patients and history remain safely linked.`;
+            statusLabel.textContent = "INACTIVE";
+            authLabel.textContent = "changed to SUSPENDED (Login blocked)";
+            confirmBtn.className = "btn-warning-confirm";
+            confirmBtn.textContent = "Confirm Deactivation";
+        }
+
+        openModal("statusConfirmModal");
+    }
+
+    async function executeStatusChange() {
+        if (!activeDoctorId) return;
+        const action = targetActivateState ? "activate" : "deactivate";
+        const btn = document.getElementById("confirmStatusBtn");
+        const errEl = document.getElementById("statusChangeError");
+
+        errEl.style.display = "none";
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        try {
+            const res = await fetch(`/api/admin/doctors/${encodeURIComponent(activeDoctorId)}/${action}`, {
+                method: "PATCH",
+                headers: { "Accept": "application/json" }
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                errEl.textContent = data.message || `Failed to ${action} doctor`;
+                errEl.style.display = "block";
+                btn.disabled = false;
+                btn.textContent = "Confirm";
+                return;
+            }
+
+            closeModal("statusConfirmModal");
+            showAlert(`Doctor ${activeDoctorId} ${action}d successfully! Reloading...`, true);
+            setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+            errEl.textContent = `Network error communicating with server`;
+            errEl.style.display = "block";
+            btn.disabled = false;
+            btn.textContent = "Confirm";
+        }
+    }
+</script>
 </body>
 </html>

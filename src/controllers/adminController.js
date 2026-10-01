@@ -100,55 +100,13 @@ const getOverview = async (req, res) => {
     }
 };
 
+const adminDoctorController = require("./adminDoctorController");
+
 /**
  * Super Admin Doctors Directory Foundation
  * GET /admin/doctors
  */
-const getDoctors = async (req, res) => {
-    try {
-        const rawDoctors = await Doctor.find().sort({ doctorId: 1 }).lean();
-
-        // Enrich with assigned patient counts and linked user status
-        const doctors = await Promise.all(
-            rawDoctors.map(async (doc) => {
-                const assignedPatientCount = await Patient.countDocuments({ doctorId: doc.doctorId });
-                let accountStatus = ACCOUNT_STATUS.ACTIVE;
-                if (doc.userId) {
-                    const linkedUser = await User.findById(doc.userId).select("status").lean();
-                    if (linkedUser) {
-                        accountStatus = linkedUser.status;
-                    }
-                }
-                return {
-                    doctorId: doc.doctorId,
-                    name: doc.name,
-                    email: doc.email,
-                    specialty: doc.specialty || "General Medicine",
-                    status: doc.status || "ACTIVE",
-                    accountStatus,
-                    assignedPatientCount,
-                    createdAt: doc.createdAt
-                };
-            })
-        );
-
-        if (isApiRequest(req)) {
-            return res.status(200).json({ success: true, count: doctors.length, doctors });
-        }
-
-        return res.render("admin/doctors", {
-            user: req.user,
-            activePage: "doctors",
-            doctors
-        });
-    } catch (error) {
-        console.error("Admin doctors error:", error.message);
-        if (isApiRequest(req)) {
-            return res.status(500).json({ success: false, message: "Failed to load doctors" });
-        }
-        return res.status(500).send("Internal Server Error: Failed to load doctors");
-    }
-};
+const getDoctors = adminDoctorController.getDoctors;
 
 /**
  * Super Admin Patients Directory Foundation

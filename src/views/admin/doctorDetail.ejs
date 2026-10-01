@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack — Super Admin Doctor <%= doctor.doctorId %></title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+    <%- include("partials/sidebar", { activePage, user }) %>
+
+    <div class="admin-main">
+        <%- include("partials/topbar", { 
+            pageTitle: `Physician Profile: ${doctor.name}`, 
+            pageSubtitle: `Doctor ID: ${doctor.doctorId} — Clinical account status, credentials overview, and assigned patient load`,
+            user 
+        }) %>
+
+        <main class="admin-content-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <a href="/admin/doctors" style="color: var(--burnt-orange); text-decoration: none; font-size: 13px; font-weight: 500;">
+                    &larr; Back to Doctor Directory
+                </a>
+
+                <div class="action-btn-group">
+                    <% if (doctor.status === 'ACTIVE') { %>
+                        <button type="button" 
+                                class="btn-action btn-deactivate" 
+                                onclick="toggleDoctorStatus('<%= doctor.doctorId %>', false)">
+                            Deactivate Account
+                        </button>
+                    <% } else { %>
+                        <button type="button" 
+                                class="btn-action btn-activate" 
+                                onclick="toggleDoctorStatus('<%= doctor.doctorId %>', true)">
+                            Activate Account
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Toast Alert -->
+            <div id="operationAlert" style="display: none; margin: 16px 0; padding: 12px 16px; border-radius: 8px; font-size: 13px;"></div>
+
+            <!-- Overview Metrics for this Doctor -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Clinical Status</span>
+                    <div style="margin-top: 8px;">
+                        <span class="status-pill <%= doctor.status === 'ACTIVE' ? 'active-pill' : 'inactive-pill' %>">
+                            <%= doctor.status %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">User Account Status</span>
+                    <div style="margin-top: 8px;">
+                        <span class="status-pill <%= doctor.accountStatus === 'ACTIVE' ? 'active-pill' : 'inactive-pill' %>">
+                            <%= doctor.accountStatus %>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Assigned Patients</span>
+                    <div class="metric-value"><%= doctor.assignedPatientCount || 0 %></div>
+                    <span class="metric-sub">under active care</span>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Specialization</span>
+                    <div style="margin-top: 8px; font-size: 15px; font-weight: 600; color: var(--vanilla);">
+                        <%= doctor.specialization || doctor.specialty || "General Medicine" %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physician Information & Details -->
+            <div class="data-split-grid" style="margin-top: 24px;">
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Physician Profile & Credentials</h2>
+                    </div>
+                    <div style="padding: 16px; font-size: 13px; line-height: 1.8;">
+                        <p><strong>Doctor ID:</strong> <code style="color: var(--burnt-orange); font-weight: 700;"><%= doctor.doctorId %></code></p>
+                        <p><strong>Full Name:</strong> <%= doctor.name %></p>
+                        <p><strong>Email Address:</strong> <%= doctor.email %></p>
+                        <p><strong>Username:</strong> <%= doctor.username ? `@${doctor.username}` : "—" %></p>
+                        <p><strong>Phone:</strong> <%= doctor.phone || "Not provided" %></p>
+                        <p><strong>Specialization:</strong> <%= doctor.specialization || "General Medicine" %></p>
+                        <p><strong>Enrolled Date:</strong> <%= doctor.createdAt ? new Date(doctor.createdAt).toLocaleString() : "—" %></p>
+                        <p><strong>Last Updated:</strong> <%= doctor.updatedAt ? new Date(doctor.updatedAt).toLocaleString() : "—" %></p>
+                    </div>
+                </section>
+
+                <section class="section-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Clinical Role & Invariants</h2>
+                    </div>
+                    <div style="padding: 16px; font-size: 13px; line-height: 1.8;">
+                        <p><strong>System Role:</strong> <span class="status-pill active-pill">DOCTOR</span></p>
+                        <p><strong>Identity Invariant:</strong> 1 User Account &harr; 1 Doctor Profile</p>
+                        <p><strong>Clinical Assignment:</strong> Managed via Super Admin (Phase 8)</p>
+                        <p><strong>Telemetry Access:</strong> Receives real-time sensor streams for assigned patients</p>
+                        <p><strong>Audit Trail:</strong> All status and profile changes are immutably logged</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Assigned Patients (Read-Only) -->
+            <section class="section-panel" style="margin-top: 24px;">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h2 class="panel-title">Assigned Patients (Read-Only)</h2>
+                        <span class="metric-sub">Patients currently assigned to <%= doctor.name %></span>
+                    </div>
+                    <span class="panel-badge"><%= doctor.assignedPatients ? doctor.assignedPatients.length : 0 %> Patients</span>
+                </div>
+
+                <% if (!doctor.assignedPatients || doctor.assignedPatients.length === 0) { %>
+                    <div class="empty-state" style="padding: 24px 0;">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>No patients assigned</h3>
+                        <p>This physician does not currently have any active patient assignments.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Age</th>
+                                    <th>Gender</th>
+                                    <th>Hardware Device</th>
+                                    <th>Enrolled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% doctor.assignedPatients.forEach(p => { %>
+                                    <tr>
+                                        <td class="id-cell"><strong><%= p.patientId %></strong></td>
+                                        <td><%= p.name %></td>
+                                        <td><%= p.email %></td>
+                                        <td><%= p.age %></td>
+                                        <td><%= p.gender || "—" %></td>
+                                        <td>
+                                            <% if (p.deviceId) { %>
+                                                <code style="color: var(--burnt-orange);"><%= p.deviceId %></code>
+                                            <% } else { %>
+                                                <span class="metric-sub" style="font-style: italic;">None</span>
+                                            <% } %>
+                                        </td>
+                                        <td><%= p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—" %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+
+            <!-- Recent Activity Audit Log -->
+            <section class="section-panel" style="margin-top: 24px;">
+                <div class="panel-header">
+                    <h2 class="panel-title">Recent Lifecycle & Audit History</h2>
+                </div>
+
+                <% if (!doctor.recentActivity || doctor.recentActivity.length === 0) { %>
+                    <div class="empty-state" style="padding: 24px 0;">
+                        <div class="empty-state-icon">📋</div>
+                        <h3>No audit events recorded</h3>
+                        <p>No activity records exist for this physician profile.</p>
+                    </div>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Action</th>
+                                    <th>Actor</th>
+                                    <th>Role</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% doctor.recentActivity.forEach(log => { %>
+                                    <tr>
+                                        <td><%= new Date(log.timestamp).toLocaleString() %></td>
+                                        <td><span class="status-pill active-pill"><%= log.action %></span></td>
+                                        <td><%= log.actorId %></td>
+                                        <td><%= log.actorRole %></td>
+                                        <td>
+                                            <code style="font-size: 11px;"><%= JSON.stringify(log.details || {}) %></code>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    function showAlert(message, isSuccess = true) {
+        const el = document.getElementById("operationAlert");
+        el.style.display = "block";
+        el.style.backgroundColor = isSuccess ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)";
+        el.style.color = isSuccess ? "#4ADE80" : "#F87171";
+        el.style.border = `1px solid ${isSuccess ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`;
+        el.textContent = message;
+        setTimeout(() => { el.style.display = "none"; }, 5000);
+    }
+
+    async function toggleDoctorStatus(doctorId, shouldActivate) {
+        const action = shouldActivate ? "activate" : "deactivate";
+        try {
+            const res = await fetch(`/api/admin/doctors/${encodeURIComponent(doctorId)}/${action}`, {
+                method: "PATCH",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showAlert(data.message || `Failed to ${action} doctor`, false);
+                return;
+            }
+            showAlert(`Doctor ${doctorId} ${action}d successfully! Reloading...`, true);
+            setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+            showAlert(`Network error attempting to ${action} doctor`, false);
+        }
+    }
+</script>
+</body>
+</html>

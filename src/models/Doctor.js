@@ -48,8 +48,15 @@ const doctorSchema = new mongoose.Schema(
         }
     },
     {
-        timestamps: true
+        timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
     }
 );
+
+// Virtual for backwards compatibility with legacy or alternate views using 'specialty'
+doctorSchema.virtual("specialty").get(function () {
+    return this.specialization || "General Medicine";
+});
 
 module.exports = mongoose.model("Doctor", doctorSchema);
