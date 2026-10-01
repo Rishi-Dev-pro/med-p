@@ -4,7 +4,7 @@ const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const SensorReading = require("../models/SensorReading");
 const Doctor = require("../models/Doctor");
-const { authenticate } = require("../middleware/authMiddleware");
+const { authenticate, isApiRequest } = require("../middleware/authMiddleware");
 const { requirePatientOwnership, requireDoctorOwnership } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
@@ -153,26 +153,67 @@ router.get("/doctor/:doctorId", authenticate, requireDoctorOwnership("doctorId")
         );
 
 
+        if (isApiRequest(req)) {
+            return res.status(200).json({
+                success: true,
+                doctorId: doctor.doctorId,
+                doctor: {
+                    doctorId: doctor.doctorId,
+                    name: doctor.name,
+                    specialization: doctor.specialization
+                },
+                patients: patientData
+            });
+        }
+
         res.render("doctor/dashboard", {
-
             doctor,
-
             patients: patientData
-
         });
 
     } catch (error) {
-
-        console.error(
-            "Doctor dashboard error:",
-            error
-        );
-
-        res.status(500).send(
-            "Failed to load doctor dashboard"
-        );
+        console.error("Doctor dashboard error:", error);
+        if (isApiRequest(req)) {
+            return res.status(500).json({ success: false, message: "Failed to load doctor dashboard" });
+        }
+        res.status(500).send("Failed to load doctor dashboard");
     }
+});
 
+/**
+ * Doctor-side Patient Visibility API Endpoint
+ * GET /api/doctor/:doctorId/patients
+ * Strictly restricts results to patients where Patient.doctorId === doctorId.
+ */
+router.get("/api/doctor/:doctorId/patients", authenticate, requireDoctorOwnership("doctorId"), async (req, res) => {
+    try {
+        const doctorId = req.params.doctorId;
+        const doctor = await Doctor.findOne({ doctorId });
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: "Doctor not found" });
+        }
+
+        const patients = await Patient.find({ doctorId }).sort({ patientId: 1 }).lean();
+        const patientData = patients.map((p) => ({
+            patientId: p.patientId,
+            name: p.name,
+            email: p.email,
+            age: p.age,
+            gender: p.gender,
+            deviceId: p.deviceId || null,
+            doctorId: p.doctorId,
+            createdAt: p.createdAt
+        }));
+
+        return res.status(200).json({
+            success: true,
+            count: patientData.length,
+            patients: patientData
+        });
+    } catch (error) {
+        console.error("Doctor patients list error:", error);
+        return res.status(500).json({ success: false, message: "Failed to retrieve doctor's patients" });
+    }
 });
 
 

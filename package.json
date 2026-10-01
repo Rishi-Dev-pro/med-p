@@ -16,7 +16,8 @@
     "test:device": "node tests/deviceManagementValidation.test.js",
     "test:claim": "node tests/patientRegistrationValidation.test.js",
     "test:doctor": "node tests/doctorManagementValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor"
+    "test:assignment": "node tests/patientDoctorAssignmentValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment"
   },
   "keywords": [],
   "author": "",

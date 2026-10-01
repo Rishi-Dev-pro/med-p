@@ -108,65 +108,13 @@ const adminDoctorController = require("./adminDoctorController");
  */
 const getDoctors = adminDoctorController.getDoctors;
 
+const adminPatientController = require("./adminPatientController");
+
 /**
  * Super Admin Patients Directory Foundation
  * GET /admin/patients
  */
-const getPatients = async (req, res) => {
-    try {
-        const rawPatients = await Patient.find().sort({ patientId: 1 }).lean();
-
-        // Enrich with doctor name and account status
-        const patients = await Promise.all(
-            rawPatients.map(async (pat) => {
-                let doctorName = null;
-                if (pat.doctorId) {
-                    const doc = await Doctor.findOne({ doctorId: pat.doctorId }).select("name").lean();
-                    if (doc) {
-                        doctorName = doc.name;
-                    }
-                }
-
-                let accountStatus = ACCOUNT_STATUS.ACTIVE;
-                if (pat.userId) {
-                    const linkedUser = await User.findById(pat.userId).select("status").lean();
-                    if (linkedUser) {
-                        accountStatus = linkedUser.status;
-                    }
-                }
-
-                return {
-                    patientId: pat.patientId,
-                    name: pat.name,
-                    email: pat.email,
-                    age: pat.age,
-                    gender: pat.gender,
-                    doctorId: pat.doctorId,
-                    doctorName,
-                    deviceId: pat.deviceId,
-                    accountStatus,
-                    createdAt: pat.createdAt
-                };
-            })
-        );
-
-        if (isApiRequest(req)) {
-            return res.status(200).json({ success: true, count: patients.length, patients });
-        }
-
-        return res.render("admin/patients", {
-            user: req.user,
-            activePage: "patients",
-            patients
-        });
-    } catch (error) {
-        console.error("Admin patients error:", error.message);
-        if (isApiRequest(req)) {
-            return res.status(500).json({ success: false, message: "Failed to load patients" });
-        }
-        return res.status(500).send("Internal Server Error: Failed to load patients");
-    }
-};
+const getPatients = adminPatientController.getPatients;
 
 /**
  * Super Admin Devices Inventory Foundation

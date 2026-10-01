@@ -5,6 +5,69 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 8: Patient ↔ Doctor Assignment Engine & Clinical Relationship Management
+- **Phase / Task:** PHASE 8 (`TASK-8.1`, `TASK-8.2`)
+- **Change:**
+  1. Created `src/controllers/adminPatientController.js`:
+     - `getPatients`: Super Admin patient inventory endpoint (`GET /api/admin/patients`, `GET /admin/patients`). Enriches patient profiles with assigned doctor name, account status, and assignment status badge (`ASSIGNED` vs `UNASSIGNED`). Supports both JSON API and EJS view rendering without exposing sensitive credentials or secrets.
+     - `getEligibleDoctors`: Returns active doctors who can receive clinical assignments (`GET /api/admin/assignments/eligible-doctors`). Filters by `status: DOCTOR_STATUS.ACTIVE` and computes real-time `assignedPatientCount` for assignment selection modals.
+     - `assignDoctor`: Super Admin assignment operation (`POST /api/admin/assignments`, `PATCH /api/admin/patients/:patientId/assign-doctor`). Validates that patient exists, doctor exists, and doctor is clinically `ACTIVE` (`Doctor.status === DOCTOR_STATUS.ACTIVE`). Rejects inactive or suspended doctors with 400 Bad Request. Disallows fake placeholder doctor IDs ("UNASSIGNED" or "NULL"). Performs atomic single-document update on `Patient.doctorId`. Automatically differentiates between initial assignment (`PATIENT_ASSIGNED`) and reassignment (`PATIENT_REASSIGNED`) in `ActivityLog`. Evicts prior doctor socket connections from `patient:<patientId>` real-time rooms.
+     - `unassignDoctor`: Super Admin unassignment operation (`DELETE /api/admin/assignments/:patientId`, `DELETE /api/admin/patients/:patientId/unassign-doctor`). Sets `Patient.doctorId = null`. Preserves patient record, linked user account, hardware device binding (`Patient.deviceId`, `Device.patientId`), and all historical `SensorReading` snapshots. Records `PATIENT_UNASSIGNED` in `ActivityLog`. Evicts doctor sockets from patient real-time room.
+  2. Updated `src/config/constants.js`:
+     - Added `PATIENT_ASSIGNED: "PATIENT_ASSIGNED"` and `PATIENT_UNASSIGNED: "PATIENT_UNASSIGNED"` to `AUDIT_ACTIONS` enum.
+  3. Updated `src/controllers/adminDoctorController.js`:
+     - Enhanced `deactivateDoctor`: When a doctor is deactivated, active patients currently assigned to that doctor are unassigned (`Patient.updateMany({ doctorId }, { $set: { doctorId: null } })`) with individual `PATIENT_UNASSIGNED` audit logs (reason: `DOCTOR_DEACTIVATED`), strictly preventing patients from remaining assigned to an inactive clinician. Patients are NEVER automatically reassigned elsewhere.
+     - Verified `activateDoctor`: When a previously deactivated doctor is reactivated, previous assignments are NOT automatically restored; patients remain unassigned until explicitly reassigned by Super Admin.
+  4. Updated `src/controllers/adminController.js`:
+     - Delegated `getPatients` to `adminPatientController.getPatients`.
+  5. Updated `src/routes/adminRoutes.js`:
+     - Mounted Phase 8 endpoints:
+       - `POST /assignments` -> `adminPatientController.assignDoctor`
+       - `DELETE /assignments/:patientId` -> `adminPatientController.unassignDoctor`
+       - `GET /assignments/eligible-doctors` -> `adminPatientController.getEligibleDoctors`
+       - `PATCH /patients/:patientId/assign-doctor` -> `adminPatientController.assignDoctor`
+       - `DELETE /patients/:patientId/unassign-doctor` -> `adminPatientController.unassignDoctor`
+     - Protected all endpoints with `authenticate` and `requireRole(ROLES.SUPER_ADMIN)`.
+  6. Updated `src/routes/dashboardRoutes.js`:
+     - Enhanced Doctor Dashboard endpoint (`GET /doctor/:doctorId`) to support JSON API responses when requested via `Accept: application/json`.
+     - Added Doctor Patients API endpoint (`GET /api/doctor/:doctorId/patients`) guarded by `authenticate` and `requireDoctorOwnership("doctorId")`, ensuring physicians can only see patients currently assigned to them and cannot see unassigned patients or patients of other doctors.
+  7. Upgraded Admin Patient UI (`src/views/admin/patients.ejs`):
+     - Added KPI summary cards for Total Patients, Assigned, Unassigned, and Device Bound.
+     - Integrated `ASSIGNED` vs `UNASSIGNED` visual badges with physician names and doctor IDs.
+     - Built interactive Assign / Reassign Physician Modal with live-loaded active doctor dropdown and assignment confirmation details.
+     - Built Unassign Confirmation Modal with clinical invariant warnings explaining that device binding and telemetry remain untouched.
+  8. Implemented Comprehensive Phase 8 Test Suite (`tests/patientDoctorAssignmentValidation.test.js`):
+     - 40 automated tests covering:
+       - Basic Assignment (Tests 1-8): Super Admin assignment, patient rejection, doctor rejection, unauthenticated rejection, invalid patient, invalid doctor, inactive doctor rejection, and correct `Patient.doctorId` database persistence.
+       - Unassignment (Tests 9-13): Super Admin unassignment, patient record preservation, device ownership preservation, `doctorId` set to `null`, and invisibility to doctors.
+       - Reassignment (Tests 14-19): Moving patient from Doctor A to Doctor B, Doctor B active check, Doctor A visibility removal, Doctor B visibility grant, device ownership unchanged, and historical `SensorReading.doctorId` snapshot immutability.
+       - Doctor Lifecycle (Tests 20-23): Doctor deactivation unassigns patients (`doctorId = null`), prevents automatic reassignment, ensures reactivation does not automatically restore assignments, and permits explicit reassignments.
+       - Security (Tests 24-28): Role spoofing defense, patientId spoofing defense, doctorId spoofing defense, patient assignment manipulation defense, and doctor assignment manipulation defense.
+       - Socket / Telemetry (Tests 29-33): Newly assigned doctor receives future telemetry (`doctor:<doctorId>`), previous doctor stops receiving future telemetry, patient continues receiving own telemetry (`patient:<patientId>`), unassigned patient telemetry stores `doctorId = null`, and historical telemetry records are never modified.
+       - Audit (Tests 34-37): Audit logs created for assignment (`PATIENT_ASSIGNED`), reassignment (`PATIENT_REASSIGNED`), unassignment (`PATIENT_UNASSIGNED`), and doctor deactivation unassignment.
+       - Integrity (Tests 38-40): Valid Patient/Doctor DB references, 1 Doctor to many Patients cardinality, and 1 Patient to at most 1 current Doctor cardinality.
+  9. Updated `package.json`:
+     - Added `test:assignment` script (`node tests/patientDoctorAssignmentValidation.test.js`) and added it to master `npm test` pipeline.
+- **Reason:**
+  Establish authoritative clinical relationship management between patients and doctors with strict 1:N cardinality, active-doctor invariants, server-side RBAC protection, Socket.IO real-time routing adaptation, and zero telemetry corruption.
+- **Files Affected:**
+  - `src/config/constants.js`
+  - `src/controllers/adminPatientController.js`
+  - `src/controllers/adminDoctorController.js`
+  - `src/controllers/adminController.js`
+  - `src/routes/adminRoutes.js`
+  - `src/routes/dashboardRoutes.js`
+  - `src/views/admin/patients.ejs`
+  - `package.json`
+  - `tests/doctorManagementValidation.test.js`
+  - `tests/patientDoctorAssignmentValidation.test.js`
+  - `doc/HEALTH_TRACKER_TASK_TRACKER.md`
+  - `doc/HEALTH_TRACKER_PROGRESS.md`
+  - `doc/HEALTH_TRACKER_CHANGELOG.md`
+- **Verification:**
+  - `node tests/patientDoctorAssignmentValidation.test.js`: 40/40 tests passed.
+  - `npm test`: 226/226 tests passed across all 9 test suites (Phase 0: 10, Phase 1: 10, Phase 2: 20, Phase 3: 24, Phase 4: 20, Phase 5: 34, Phase 6: 28, Phase 7: 40, Phase 8: 40). Zero regressions.
+
 ### 2026-10-02 — Phase 7: Doctor Provisioning, Credential Management & Account Lifecycle
 - **Phase / Task:** PHASE 7 (`TASK-7.1`, `TASK-7.2`, `TASK-7.3`, `TASK-7.4`)
 - **Change:**

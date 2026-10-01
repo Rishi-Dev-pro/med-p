@@ -551,6 +551,48 @@ const deactivateDoctor = async (req, res) => {
             }
         }
 
+        // Phase 8: Unassign all patients currently assigned to this deactivated doctor
+        const assignedPatients = await Patient.find({ doctorId: cleanDoctorId });
+        if (assignedPatients.length > 0) {
+            await Patient.updateMany({ doctorId: cleanDoctorId }, { $set: { doctorId: null } });
+            for (const pat of assignedPatients) {
+                try {
+                    await ActivityLog.create({
+                        action: AUDIT_ACTIONS.PATIENT_UNASSIGNED,
+                        actorRole: ACTOR_ROLES.SUPER_ADMIN,
+                        actorId: req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                        targetType: TARGET_TYPES.PATIENT,
+                        targetId: pat.patientId,
+                        details: {
+                            reason: "DOCTOR_DEACTIVATED",
+                            previousDoctorId: cleanDoctorId,
+                            newDoctorId: null
+                        },
+                        timestamp: new Date()
+                    });
+                } catch (patAuditErr) {
+                    console.warn("Patient deactivation unassignment audit log warning:", patAuditErr.message);
+                }
+            }
+
+            // Real-time socket room eviction for deactivated doctor
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            if (io) {
+                for (const pat of assignedPatients) {
+                    try {
+                        const sockets = await io.in(`patient:${pat.patientId}`).fetchSockets();
+                        for (const s of sockets) {
+                            if (s.user && s.user.role === ROLES.DOCTOR && s.user.profileId === cleanDoctorId) {
+                                s.leave(`patient:${pat.patientId}`);
+                            }
+                        }
+                    } catch (sockErr) {
+                        // socket room eviction is non-blocking
+                    }
+                }
+            }
+        }
+
         // Audit log
         try {
             await ActivityLog.create({
@@ -562,7 +604,8 @@ const deactivateDoctor = async (req, res) => {
                 details: {
                     previousDoctorStatus,
                     status: DOCTOR_STATUS.INACTIVE,
-                    accountStatus: ACCOUNT_STATUS.SUSPENDED
+                    accountStatus: ACCOUNT_STATUS.SUSPENDED,
+                    unassignedPatientCount: assignedPatients.length
                 },
                 timestamp: new Date()
             });

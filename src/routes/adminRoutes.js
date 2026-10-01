@@ -5,6 +5,7 @@ const { ROLES } = require("../config/constants");
 const adminController = require("../controllers/adminController");
 const adminDeviceController = require("../controllers/adminDeviceController");
 const adminDoctorController = require("../controllers/adminDoctorController");
+const adminPatientController = require("../controllers/adminPatientController");
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ const router = express.Router();
  * Health Tracker — Phase 4: Super Admin Portal & Layout
  * Health Tracker — Phase 5: Hardware Device Management & Lifecycle
  * Health Tracker — Phase 7: Doctor Provisioning & Account Lifecycle
+ * Health Tracker — Phase 8: Patient <-> Doctor Assignment Engine
  *
  * Every route requires valid JWT authentication and role === 'SUPER_ADMIN'.
  */
@@ -20,6 +22,13 @@ const router = express.Router();
 // Super Admin Overview / Dashboard
 router.get("/", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
 router.get("/overview", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getOverview);
+
+// Phase 8 Patient <-> Doctor Assignment Engine Endpoints
+router.post("/assignments", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.assignDoctor);
+router.delete("/assignments/:patientId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.unassignDoctor);
+router.get("/assignments/eligible-doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.getEligibleDoctors);
+router.patch("/patients/:patientId/assign-doctor", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.assignDoctor);
+router.delete("/patients/:patientId/unassign-doctor", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.unassignDoctor);
 
 // Phase 7 Doctor Management & Lifecycle Endpoints
 router.get("/doctors", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.getDoctors);
@@ -30,7 +39,7 @@ router.patch("/doctors/:doctorId/deactivate", authenticate, requireRole(ROLES.SU
 router.delete("/doctors/:doctorId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDoctorController.deleteDoctor);
 
 // Super Admin Management Foundations
-router.get("/patients", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getPatients);
+router.get("/patients", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.getPatients);
 router.get("/activity", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getActivity);
 
 // Phase 5 Hardware Device Management & Lifecycle Endpoints

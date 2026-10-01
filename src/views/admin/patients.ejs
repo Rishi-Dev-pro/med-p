@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthTrack — Super Admin Patients</title>
+    <title>HealthTrack — Super Admin Patients & Clinical Assignments</title>
     <link rel="stylesheet" href="/css/global.css">
     <link rel="stylesheet" href="/css/admin.css">
 </head>
@@ -13,24 +13,74 @@
 
     <div class="admin-main">
         <%- include("partials/topbar", { 
-            pageTitle: "Patient Registry", 
-            pageSubtitle: "Enrolled platform patients, hardware bindings, and clinical assignments",
+            pageTitle: "Patient Registry & Clinical Assignments", 
+            pageSubtitle: "Patient clinical relationships, physician assignment engine, hardware telemetry routing, and enrollment lifecycle",
             user 
         }) %>
 
         <main class="admin-content-body">
-            <!-- Phase 8 Foundation Notice -->
-            <div class="foundation-banner">
-                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+            <!-- Phase 8 Engine Banner -->
+            <div class="foundation-banner" style="border-left: 3px solid var(--burnt-orange);">
+                <span class="foundation-badge" style="background: var(--burnt-orange);">PHASE 8 ENGINE</span>
                 <p>
-                    <strong>Read-Only Patient Registry:</strong> Live patient records populated from MongoDB. Interactive doctor assignment, patient reassignment, and unbind triggers are scheduled for <strong>Phase 8 (Patient ↔ Doctor Assignment Engine)</strong>.
+                    <strong>Patient ↔ Doctor Assignment Engine:</strong> Super Admin has authoritative control over clinical relationships. Assign, reassign, or unassign patients with zero-regression protection for historical telemetry snapshots and hardware device bindings.
                 </p>
             </div>
 
+            <!-- Summary KPI Cards -->
+            <%
+                const totalPatients = patients ? patients.length : 0;
+                const assignedCount = patients ? patients.filter(p => p.doctorId).length : 0;
+                const unassignedCount = totalPatients - assignedCount;
+                const deviceCount = patients ? patients.filter(p => p.deviceId).length : 0;
+            %>
+            <div class="admin-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Total Patients</span>
+                        <span class="metric-icon">👥</span>
+                    </div>
+                    <div class="metric-value"><%= totalPatients %></div>
+                    <span class="metric-sub">Enrolled platform patients</span>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Assigned</span>
+                        <span class="metric-icon">🩺</span>
+                    </div>
+                    <div class="metric-value" style="color: #4ADE80;"><%= assignedCount %></div>
+                    <span class="metric-sub">Under active physician care</span>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Unassigned</span>
+                        <span class="metric-icon">⏳</span>
+                    </div>
+                    <div class="metric-value" style="color: <%= unassignedCount > 0 ? '#FBBF24' : 'var(--muted)' %>;"><%= unassignedCount %></div>
+                    <span class="metric-sub">Awaiting doctor assignment</span>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-card-header">
+                        <span class="metric-label">Device Bound</span>
+                        <span class="metric-icon">📡</span>
+                    </div>
+                    <div class="metric-value"><%= deviceCount %></div>
+                    <span class="metric-sub">Paired hardware telemetry</span>
+                </div>
+            </div>
+
+            <!-- Toast Alert -->
+            <div id="operationAlert" style="display: none; margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; font-size: 13px;"></div>
+
             <section class="section-panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">Enrolled Patients</h2>
-                    <span class="panel-badge"><%= patients ? patients.length : 0 %> Patients</span>
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h2 class="panel-title">Enrolled Patients & Clinical Status</h2>
+                        <span class="panel-badge"><%= totalPatients %> Patients</span>
+                    </div>
                 </div>
 
                 <% if (!patients || patients.length === 0) { %>
@@ -45,28 +95,35 @@
                             <thead>
                                 <tr>
                                     <th>Patient ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
+                                    <th>Patient Name</th>
                                     <th>Demographics</th>
-                                    <th>Assigned Doctor</th>
-                                    <th>Linked Device</th>
-                                    <th>Account Status</th>
-                                    <th>Enrolled</th>
+                                    <th>Current Doctor</th>
+                                    <th>Assignment Status</th>
+                                    <th>Device</th>
+                                    <th>Account</th>
+                                    <th style="text-align: right;">Assignment Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <% patients.forEach(p => { %>
-                                    <tr>
-                                        <td class="id-cell"><%= p.patientId %></td>
-                                        <td><strong><%= p.name %></strong></td>
-                                        <td><%= p.email %></td>
+                                    <tr id="patient-row-<%= p.patientId %>">
+                                        <td class="id-cell"><strong><%= p.patientId %></strong></td>
+                                        <td>
+                                            <div style="font-weight: 600;"><%= p.name %></div>
+                                            <div style="font-size: 11px; color: var(--muted);"><%= p.email %></div>
+                                        </td>
                                         <td><%= p.age %> yrs · <%= p.gender || "unspecified" %></td>
                                         <td>
                                             <% if (p.doctorId) { %>
-                                                <span class="id-cell"><%= p.doctorId %></span>
-                                                <% if (p.doctorName) { %>
-                                                    <span class="metric-sub">(<%= p.doctorName %>)</span>
-                                                <% } %>
+                                                <div style="font-weight: 500;"><%= p.doctorName || "Assigned Doctor" %></div>
+                                                <span class="id-cell" style="font-size: 11px;"><%= p.doctorId %></span>
+                                            <% } else { %>
+                                                <span style="color: var(--muted); font-style: italic;">No doctor assigned</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (p.doctorId) { %>
+                                                <span class="status-pill active-pill">ASSIGNED</span>
                                             <% } else { %>
                                                 <span class="status-pill unassigned-pill">UNASSIGNED</span>
                                             <% } %>
@@ -75,7 +132,7 @@
                                             <% if (p.deviceId) { %>
                                                 <span class="id-cell"><%= p.deviceId %></span>
                                             <% } else { %>
-                                                <span class="status-pill unassigned-pill">UNASSIGNED</span>
+                                                <span style="color: var(--muted); font-size: 12px;">None</span>
                                             <% } %>
                                         </td>
                                         <td>
@@ -83,7 +140,40 @@
                                                 <%= p.accountStatus %>
                                             </span>
                                         </td>
-                                        <td><%= p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—" %></td>
+                                        <td style="text-align: right;">
+                                            <div style="display: inline-flex; gap: 8px;">
+                                                <% if (p.doctorId) { %>
+                                                    <button type="button" 
+                                                            class="btn-action-sm reassign-btn" 
+                                                            data-patient-id="<%= p.patientId %>"
+                                                            data-patient-name="<%= p.name %>"
+                                                            data-current-doctor-id="<%= p.doctorId %>"
+                                                            data-current-doctor-name="<%= p.doctorName || p.doctorId %>"
+                                                            style="padding: 5px 10px; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                        Reassign
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn-action-sm unassign-btn" 
+                                                            data-patient-id="<%= p.patientId %>"
+                                                            data-patient-name="<%= p.name %>"
+                                                            data-current-doctor-id="<%= p.doctorId %>"
+                                                            data-current-doctor-name="<%= p.doctorName || p.doctorId %>"
+                                                            style="padding: 5px 10px; background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                        Unassign
+                                                    </button>
+                                                <% } else { %>
+                                                    <button type="button" 
+                                                            class="btn-action-sm assign-btn" 
+                                                            data-patient-id="<%= p.patientId %>"
+                                                            data-patient-name="<%= p.name %>"
+                                                            data-current-doctor-id=""
+                                                            data-current-doctor-name=""
+                                                            style="padding: 5px 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                                                        + Assign Doctor
+                                                    </button>
+                                                <% } %>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>
@@ -94,5 +184,280 @@
         </main>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- MODAL: ASSIGN / REASSIGN DOCTOR            -->
+<!-- ========================================== -->
+<div id="assignmentModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="modal-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 id="assignmentModalTitle" style="margin: 0; font-size: 18px; color: var(--text);">Assign Doctor to Patient</h3>
+            <button type="button" id="closeAssignmentModalBtn" style="background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer;">&times;</button>
+        </div>
+
+        <form id="assignmentForm">
+            <input type="hidden" id="modalPatientId" name="patientId">
+
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--muted); font-size: 12px;">Patient:</span>
+                    <span id="modalPatientName" style="font-weight: 600; font-size: 13px;">—</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--muted); font-size: 12px;">Patient ID:</span>
+                    <span id="modalPatientIdDisplay" class="id-cell" style="font-size: 12px;">—</span>
+                </div>
+                <div id="modalCurrentDoctorRow" style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--muted); font-size: 12px;">Current Doctor:</span>
+                    <span id="modalCurrentDoctorDisplay" style="color: #60A5FA; font-weight: 500; font-size: 12px;">None (Unassigned)</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="doctorSelect" style="display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px;">
+                    Select Active Physician *
+                </label>
+                <select id="doctorSelect" name="doctorId" required style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
+                    <option value="">Loading eligible physicians...</option>
+                </select>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                    Only active, clinically available physicians are shown. Inactive/suspended doctors are strictly excluded.
+                </div>
+            </div>
+
+            <div id="assignmentModalError" style="display: none; padding: 10px 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #F87171; font-size: 12px; margin-bottom: 16px;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" id="cancelAssignmentBtn" style="padding: 8px 16px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" id="confirmAssignmentSubmitBtn" class="btn-primary-action" style="padding: 8px 18px;">
+                    Confirm Assignment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: CONFIRM UNASSIGN PATIENT            -->
+<!-- ========================================== -->
+<div id="unassignModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="modal-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 440px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 18px; color: #F87171;">Unassign Patient</h3>
+            <button type="button" id="closeUnassignModalBtn" style="background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer;">&times;</button>
+        </div>
+
+        <p style="color: var(--text); font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
+            Are you sure you want to unassign <strong id="unassignPatientName">—</strong> (<span id="unassignPatientId" class="id-cell">—</span>) from <strong id="unassignDoctorName">—</strong>?
+        </p>
+
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 12px; color: #FCD34D;">
+            <strong>Clinical Invariant Protection:</strong> The patient will remain active, registered, and device-linked. Historical telemetry records will NOT be deleted or altered. Future telemetry routing to this doctor will cease until reassigned.
+        </div>
+
+        <div id="unassignModalError" style="display: none; padding: 10px 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: #F87171; font-size: 12px; margin-bottom: 16px;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" id="cancelUnassignBtn" style="padding: 8px 16px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" id="confirmUnassignBtn" style="padding: 8px 18px; background: #DC2626; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                Confirm Unassign
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const alertBox = document.getElementById("operationAlert");
+    const assignmentModal = document.getElementById("assignmentModal");
+    const unassignModal = document.getElementById("unassignModal");
+
+    const modalPatientId = document.getElementById("modalPatientId");
+    const modalPatientName = document.getElementById("modalPatientName");
+    const modalPatientIdDisplay = document.getElementById("modalPatientIdDisplay");
+    const modalCurrentDoctorDisplay = document.getElementById("modalCurrentDoctorDisplay");
+    const doctorSelect = document.getElementById("doctorSelect");
+    const assignmentModalTitle = document.getElementById("assignmentModalTitle");
+    const assignmentModalError = document.getElementById("assignmentModalError");
+
+    let currentActionPatientId = null;
+
+    function showAlert(msg, isSuccess = true) {
+        if (!alertBox) return;
+        alertBox.style.display = "block";
+        alertBox.style.background = isSuccess ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)";
+        alertBox.style.border = isSuccess ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)";
+        alertBox.style.color = isSuccess ? "#34D399" : "#F87171";
+        alertBox.textContent = msg;
+        setTimeout(() => {
+            alertBox.style.display = "none";
+        }, 5000);
+    }
+
+    async function loadEligibleDoctors(currentDoctorId = "") {
+        doctorSelect.innerHTML = '<option value="">Loading physicians...</option>';
+        try {
+            const res = await fetch("/api/admin/assignments/eligible-doctors", {
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (data.success && data.doctors) {
+                if (data.doctors.length === 0) {
+                    doctorSelect.innerHTML = '<option value="">No active doctors available</option>';
+                    return;
+                }
+                doctorSelect.innerHTML = '<option value="">-- Choose an active doctor --</option>' +
+                    data.doctors.map(d => {
+                        const isCurrent = d.doctorId === currentDoctorId;
+                        const label = `${d.name} (${d.doctorId}) · ${d.specialization} [${d.assignedPatientCount} assigned]`;
+                        return `<option value="${d.doctorId}" ${isCurrent ? 'disabled' : ''}>${label}${isCurrent ? ' (Current)' : ''}</option>`;
+                    }).join("");
+            } else {
+                doctorSelect.innerHTML = '<option value="">Failed to load doctors</option>';
+            }
+        } catch (err) {
+            doctorSelect.innerHTML = '<option value="">Network error loading doctors</option>';
+        }
+    }
+
+    // Open Assign Modal
+    document.querySelectorAll(".assign-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const patId = btn.dataset.patientId;
+            const patName = btn.dataset.patientName;
+            currentActionPatientId = patId;
+
+            modalPatientId.value = patId;
+            modalPatientName.textContent = patName;
+            modalPatientIdDisplay.textContent = patId;
+            modalCurrentDoctorDisplay.textContent = "None (Unassigned)";
+            assignmentModalTitle.textContent = "Assign Doctor to Patient";
+            assignmentModalError.style.display = "none";
+
+            loadEligibleDoctors();
+            assignmentModal.style.display = "flex";
+        });
+    });
+
+    // Open Reassign Modal
+    document.querySelectorAll(".reassign-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const patId = btn.dataset.patientId;
+            const patName = btn.dataset.patientName;
+            const curDocId = btn.dataset.currentDoctorId;
+            const curDocName = btn.dataset.currentDoctorName;
+            currentActionPatientId = patId;
+
+            modalPatientId.value = patId;
+            modalPatientName.textContent = patName;
+            modalPatientIdDisplay.textContent = patId;
+            modalCurrentDoctorDisplay.textContent = `${curDocName} (${curDocId})`;
+            assignmentModalTitle.textContent = "Reassign Patient to New Doctor";
+            assignmentModalError.style.display = "none";
+
+            loadEligibleDoctors(curDocId);
+            assignmentModal.style.display = "flex";
+        });
+    });
+
+    // Close Assignment Modal
+    const closeAssign = () => {
+        assignmentModal.style.display = "none";
+        document.getElementById("assignmentForm").reset();
+    };
+    document.getElementById("closeAssignmentModalBtn")?.addEventListener("click", closeAssign);
+    document.getElementById("cancelAssignmentBtn")?.addEventListener("click", closeAssign);
+
+    // Submit Assignment / Reassignment
+    document.getElementById("assignmentForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        assignmentModalError.style.display = "none";
+        const selectedDoctorId = doctorSelect.value;
+        const patientId = modalPatientId.value;
+
+        if (!selectedDoctorId) {
+            assignmentModalError.textContent = "Please select an active physician";
+            assignmentModalError.style.display = "block";
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/admin/assignments", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    patientId,
+                    doctorId: selectedDoctorId
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeAssign();
+                showAlert(data.message || "Assignment completed successfully", true);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                assignmentModalError.textContent = data.message || "Failed to assign doctor";
+                assignmentModalError.style.display = "block";
+            }
+        } catch (err) {
+            assignmentModalError.textContent = "Network error communicating with server";
+            assignmentModalError.style.display = "block";
+        }
+    });
+
+    // Unassign Flow
+    let unassignTargetPatientId = null;
+    document.querySelectorAll(".unassign-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            unassignTargetPatientId = btn.dataset.patientId;
+            document.getElementById("unassignPatientName").textContent = btn.dataset.patientName;
+            document.getElementById("unassignPatientId").textContent = unassignTargetPatientId;
+            document.getElementById("unassignDoctorName").textContent = btn.dataset.currentDoctorName;
+            document.getElementById("unassignModalError").style.display = "none";
+            unassignModal.style.display = "flex";
+        });
+    });
+
+    const closeUnassign = () => {
+        unassignModal.style.display = "none";
+        unassignTargetPatientId = null;
+    };
+    document.getElementById("closeUnassignModalBtn")?.addEventListener("click", closeUnassign);
+    document.getElementById("cancelUnassignBtn")?.addEventListener("click", closeUnassign);
+
+    document.getElementById("confirmUnassignBtn")?.addEventListener("click", async () => {
+        if (!unassignTargetPatientId) return;
+        const errorBox = document.getElementById("unassignModalError");
+        errorBox.style.display = "none";
+
+        try {
+            const res = await fetch(`/api/admin/assignments/${unassignTargetPatientId}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeUnassign();
+                showAlert(data.message || "Patient successfully unassigned", true);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                errorBox.textContent = data.message || "Failed to unassign patient";
+                errorBox.style.display = "block";
+            }
+        } catch (err) {
+            errorBox.textContent = "Network error communicating with server";
+            errorBox.style.display = "block";
+        }
+    });
+});
+</script>
 </body>
 </html>

@@ -790,6 +790,9 @@ async function main() {
             method: "PATCH",
             headers: adminHeaders
         });
+
+        // Reassign PAT-BASE to DOC-BASE explicitly (consistent with Phase 8 explicit reassignment requirement)
+        await Patient.updateOne({ patientId: "PAT-BASE" }, { $set: { doctorId: "DOC-BASE" } });
     });
 
     // Test 37: Existing patient records remain intact

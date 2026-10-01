@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 30 |
+| **Tasks Completed** | 32 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 16 |
-| **Overall Completion** | 65.2% |
+| **Tasks Not Started** | 14 |
+| **Overall Completion** | 69.6% |
 
 ---
 
@@ -144,8 +144,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-8.1` | Implement patient reassignment endpoint (`PATCH /admin/patients/:patientId/assign-doctor`) validating target doctor status | `NOT_STARTED` | Phase 7 | `src/controllers/adminPatientController.js`, `src/routes/adminRoutes.js` | None (Not yet executed) | - | Updates `Patient.doctorId` for future readings |
-| `TASK-8.2` | Build Patient Management UI with patient directory, assignment controls, and doctor reassignment modal | `NOT_STARTED` | `TASK-8.1` | `src/views/admin/patients.ejs` | None (Not yet executed) | - | Displays unassigned patients clearly |
+| `TASK-8.1` | Implement patient assignment & reassignment endpoints (`POST /api/admin/assignments`, `DELETE /api/admin/assignments/:patientId`, `PATCH /admin/patients/:patientId/assign-doctor`, `DELETE /admin/patients/:patientId/unassign-doctor`) validating target doctor status | `DONE` | Phase 7 | `src/controllers/adminPatientController.js`, `src/routes/adminRoutes.js`, `src/controllers/adminDoctorController.js` | `node tests/patientDoctorAssignmentValidation.test.js` (Tests 1-28, 34-40 PASS) | 2026-10-02 | Enforces 1:1 current doctor; ACTIVE doctor required; preserves historical snapshots & device ownership; logs PATIENT_ASSIGNED / PATIENT_REASSIGNED / PATIENT_UNASSIGNED |
+| `TASK-8.2` | Build Patient Management UI with patient directory, assignment controls, and doctor reassignment & unassign confirmation modals | `DONE` | `TASK-8.1` | `src/views/admin/patients.ejs`, `src/controllers/adminPatientController.js` | `node tests/patientDoctorAssignmentValidation.test.js` (Tests 1, 9, 14, 25-28 PASS) | 2026-10-02 | Displays ASSIGNED vs UNASSIGNED badges, current doctor name, eligible active doctor dropdown, and audit logs |
 
 ---
 
