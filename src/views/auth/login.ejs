@@ -99,12 +99,14 @@
                 alertBox.textContent = "Login successful! Redirecting...";
 
                 setTimeout(() => {
-                    if (data.user && data.user.role === "PATIENT" && data.user.profileId) {
-                        window.location.href = `/patient/${data.user.profileId}`;
-                    } else if (data.user && data.user.role === "DOCTOR" && data.user.profileId) {
-                        window.location.href = `/doctor/${data.user.profileId}`;
+                    if (data.user && data.user.role === "SUPER_ADMIN") {
+                        window.location.href = "/admin/overview";
+                    } else if (data.user && data.user.role === "DOCTOR") {
+                        window.location.href = "/doctor/overview";
+                    } else if (data.user && data.user.role === "PATIENT") {
+                        window.location.href = "/patient/overview";
                     } else {
-                        window.location.href = "/";
+                        window.location.href = "/admin/overview";
                     }
                 }, 600);
             } catch (err) {

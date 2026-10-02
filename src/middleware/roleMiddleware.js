@@ -31,7 +31,11 @@ const requireRole = (...roles) => {
         // Strictly evaluate req.user.role derived from verified JWT
         if (!allowedRoles.includes(req.user.role)) {
             if (!isApiRequest(req)) {
-                return res.status(403).send("Forbidden: Insufficient role permissions");
+                return res.status(403).render("error", {
+                    statusCode: 403,
+                    message: "Forbidden: Insufficient permissions to access this clinical resource.",
+                    user: req.user
+                });
             }
             return res.status(403).json({
                 success: false,
@@ -78,7 +82,11 @@ const requirePatientOwnership = (patientIdParam = "patientId") => {
         if (req.user.role === ROLES.PATIENT) {
             if (req.user.profileId !== targetPatientId) {
                 if (!isApiRequest(req)) {
-                    return res.status(403).send("Forbidden: You can only access your own patient records");
+                    return res.status(403).render("error", {
+                        statusCode: 403,
+                        message: "Forbidden: You can only access your own patient records.",
+                        user: req.user
+                    });
                 }
                 return res.status(403).json({
                     success: false,
@@ -93,7 +101,11 @@ const requirePatientOwnership = (patientIdParam = "patientId") => {
             const patient = await Patient.findOne({ patientId: targetPatientId });
             if (!patient) {
                 if (!isApiRequest(req)) {
-                    return res.status(404).send("Patient not found");
+                    return res.status(404).render("error", {
+                        statusCode: 404,
+                        message: "Patient record not found.",
+                        user: req.user
+                    });
                 }
                 return res.status(404).json({
                     success: false,
@@ -104,7 +116,11 @@ const requirePatientOwnership = (patientIdParam = "patientId") => {
             // Verify current assignment in database
             if (patient.doctorId !== req.user.profileId) {
                 if (!isApiRequest(req)) {
-                    return res.status(403).send("Forbidden: Patient is not assigned to your clinical care");
+                    return res.status(403).render("error", {
+                        statusCode: 403,
+                        message: "Forbidden: Patient is not assigned to your clinical care.",
+                        user: req.user
+                    });
                 }
                 return res.status(403).json({
                     success: false,

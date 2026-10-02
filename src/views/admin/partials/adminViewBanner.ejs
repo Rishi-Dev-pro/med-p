@@ -21,4 +21,34 @@
         </a>
     </div>
 </div>
+
+<script src="/js/toast.js"></script>
+<script>
+(function() {
+    function setupRestrictedNav() {
+        const navLinks = document.querySelectorAll(".sidebar nav a, aside nav a");
+        navLinks.forEach(link => {
+            if (!link.classList.contains("active")) {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const text = (this.innerText || this.textContent || "Section").trim();
+                    if (window.showToast) {
+                        window.showToast(`Private Section: "${text}" is restricted in Quick-Switch View Mode. Click 'Return to Admin' to manage accounts.`, "warning", 4500);
+                    } else {
+                        alert(`Private Section: "${text}" is restricted in Quick-Switch View Mode. Click 'Return to Admin' to manage accounts.`);
+                    }
+                });
+                link.style.opacity = "0.6";
+                link.style.cursor = "not-allowed";
+                link.title = "Restricted in Admin View Mode";
+            }
+        });
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupRestrictedNav);
+    } else {
+        setupRestrictedNav();
+    }
+})();
+</script>
 <% } %>

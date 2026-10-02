@@ -24,6 +24,7 @@ function getHelmetMiddleware(options = {}) {
             directives: {
                 defaultSrc: ["'self'"],
                 scriptSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrcAttr: ["'unsafe-inline'"],
                 styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
                 fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
                 imgSrc: ["'self'", "data:"],
@@ -54,11 +55,30 @@ function getHelmetMiddleware(options = {}) {
  */
 function getAllowedOrigins() {
     const raw = process.env.CORS_ORIGIN;
+    const currentPort = process.env.PORT || 5000;
     if (!raw) {
-        // Safe development defaults
-        return ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"];
+        // Safe development defaults including self backend port
+        return [
+            `http://localhost:${currentPort}`,
+            `http://127.0.0.1:${currentPort}`,
+            "http://localhost:5000",
+            "http://127.0.0.1:5000",
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000"
+        ];
     }
-    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+    const origins = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (process.env.NODE_ENV !== "production") {
+        if (!origins.includes(`http://localhost:${currentPort}`)) {
+            origins.push(`http://localhost:${currentPort}`);
+        }
+        if (!origins.includes(`http://127.0.0.1:${currentPort}`)) {
+            origins.push(`http://127.0.0.1:${currentPort}`);
+        }
+    }
+    return origins;
 }
 
 /**

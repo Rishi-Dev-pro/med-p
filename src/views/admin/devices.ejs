@@ -288,19 +288,50 @@
     }
 
     function openModal(id) {
-        document.getElementById(id).classList.add("open");
+        const el = document.getElementById(id);
+        if (el) el.classList.add("open");
     }
 
     function closeModal(id) {
-        document.getElementById(id).classList.remove("open");
+        if (id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("open");
+        } else {
+            document.querySelectorAll(".modal-backdrop").forEach(m => m.classList.remove("open"));
+        }
     }
 
-    // Provision Device Modal
-    document.getElementById("openCreateDeviceBtn").addEventListener("click", () => {
-        document.getElementById("newDeviceId").value = "";
-        document.getElementById("createDeviceError").style.display = "none";
-        openModal("createDeviceModal");
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.handleCreateDevice = handleCreateDevice;
+    window.toggleDeviceStatus = toggleDeviceStatus;
+    window.openResetModal = openResetModal;
+    window.executeDeviceReset = executeDeviceReset;
+    window.openDeleteModal = openDeleteModal;
+    window.executeDeviceDelete = executeDeviceDelete;
+
+    // Close on Escape key or backdrop click
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
     });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
+            backdrop.addEventListener("click", (e) => {
+                if (e.target === backdrop) backdrop.classList.remove("open");
+            });
+        });
+    });
+
+    // Provision Device Modal
+    const createBtn = document.getElementById("openCreateDeviceBtn");
+    if (createBtn) {
+        createBtn.addEventListener("click", () => {
+            document.getElementById("newDeviceId").value = "";
+            document.getElementById("createDeviceError").style.display = "none";
+            openModal("createDeviceModal");
+        });
+    }
 
     async function handleCreateDevice(e) {
         e.preventDefault();

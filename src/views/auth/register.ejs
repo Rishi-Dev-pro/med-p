@@ -254,11 +254,7 @@
                 alertBox.textContent = "Registration successful! Redirecting to your dashboard...";
 
                 setTimeout(() => {
-                    if (data.patient && data.patient.patientId) {
-                        window.location.href = `/patient/${data.patient.patientId}`;
-                    } else {
-                        window.location.href = "/login";
-                    }
+                    window.location.href = "/patient/overview";
                 }, 700);
             } catch (err) {
                 alertBox.className = "auth-alert error";

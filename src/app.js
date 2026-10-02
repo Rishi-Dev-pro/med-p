@@ -48,17 +48,61 @@ app.use(express.static(path.join(__dirname, "public")));
 // HOME & AUTH VIEWS
 // ==========================================
 
+const { verifyToken } = require("./utils/authUtils");
+const { COOKIE_NAME } = require("./config/auth");
+const { ROLES } = require("./config/constants");
+
+function getAuthRole(req) {
+    try {
+        const token = req.cookies && (req.cookies[COOKIE_NAME] || req.cookies.jwt || req.cookies.token);
+        if (!token) return null;
+        const decoded = verifyToken(token);
+        return decoded && decoded.role ? decoded.role : null;
+    } catch {
+        return null;
+    }
+}
+
 app.get("/", (req, res) => {
-    res.json({
-        message: "IoT Health Monitoring Backend is running!"
-    });
+    // If explicit API consumer, return JSON health indicator
+    if (req.headers && req.headers.accept && req.headers.accept.includes("application/json") && !req.headers.accept.includes("text/html")) {
+        return res.json({
+            message: "IoT Health Monitoring Backend is running!"
+        });
+    }
+
+    const role = getAuthRole(req);
+    if (role === ROLES.SUPER_ADMIN) {
+        return res.redirect("/admin/overview");
+    } else if (role === ROLES.DOCTOR) {
+        return res.redirect("/doctor/overview");
+    } else if (role === ROLES.PATIENT) {
+        return res.redirect("/patient/overview");
+    }
+    return res.redirect("/login");
 });
 
 app.get("/login", (req, res) => {
+    const role = getAuthRole(req);
+    if (role === ROLES.SUPER_ADMIN) {
+        return res.redirect("/admin/overview");
+    } else if (role === ROLES.DOCTOR) {
+        return res.redirect("/doctor/overview");
+    } else if (role === ROLES.PATIENT) {
+        return res.redirect("/patient/overview");
+    }
     res.render("auth/login");
 });
 
 app.get("/register", (req, res) => {
+    const role = getAuthRole(req);
+    if (role === ROLES.SUPER_ADMIN) {
+        return res.redirect("/admin/overview");
+    } else if (role === ROLES.DOCTOR) {
+        return res.redirect("/doctor/overview");
+    } else if (role === ROLES.PATIENT) {
+        return res.redirect("/patient/overview");
+    }
     res.render("auth/register");
 });
 

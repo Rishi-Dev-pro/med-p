@@ -369,19 +369,49 @@
     }
 
     function openModal(id) {
-        document.getElementById(id).classList.add("open");
+        const el = document.getElementById(id);
+        if (el) el.classList.add("open");
     }
 
     function closeModal(id) {
-        document.getElementById(id).classList.remove("open");
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("open");
     }
 
-    // Provision Doctor Button
-    document.getElementById("openCreateDoctorBtn").addEventListener("click", () => {
-        document.getElementById("createDoctorForm").reset();
-        document.getElementById("createDoctorError").style.display = "none";
-        openModal("createDoctorModal");
+    // Expose explicitly on window for inline event handlers and CSP safety
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.openStatusModal = openStatusModal;
+    window.handleCreateDoctor = handleCreateDoctor;
+    window.executeStatusChange = executeStatusChange;
+    window.copyPasswordToClipboard = copyPasswordToClipboard;
+    window.finishCredentialsView = finishCredentialsView;
+
+    // Close on backdrop click
+    document.addEventListener("click", (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains("modal-backdrop")) {
+            e.target.classList.remove("open");
+        }
     });
+
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            document.querySelectorAll(".modal-backdrop.open").forEach(modal => modal.classList.remove("open"));
+        }
+    });
+
+    // Provision Doctor Button
+    const openCreateDoctorBtn = document.getElementById("openCreateDoctorBtn");
+    if (openCreateDoctorBtn) {
+        openCreateDoctorBtn.addEventListener("click", () => {
+            const form = document.getElementById("createDoctorForm");
+            if (form) form.reset();
+            const err = document.getElementById("createDoctorError");
+            if (err) err.style.display = "none";
+            openModal("createDoctorModal");
+        });
+    }
 
     // Handle Provision Doctor Form Submission
     async function handleCreateDoctor(e) {
