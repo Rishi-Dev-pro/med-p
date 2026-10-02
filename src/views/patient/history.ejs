@@ -119,7 +119,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);">
                             <div>
                                 <% if (pagination.page > 1) { %>
-                                    <a href="/patient/history?page=<%= pagination.page - 1 %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                    <a href="/patient/history?page=<%= pagination.page - 1 %><%= typeof pagination !== 'undefined' && pagination.limit ? '&limit=' + pagination.limit : '' %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
                                        style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
                                         ← Previous Page
                                     </a>
@@ -136,7 +136,7 @@
 
                             <div>
                                 <% if (pagination.page < pagination.pages) { %>
-                                    <a href="/patient/history?page=<%= pagination.page + 1 %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
+                                    <a href="/patient/history?page=<%= pagination.page + 1 %><%= typeof pagination !== 'undefined' && pagination.limit ? '&limit=' + pagination.limit : '' %><%= typeof startDate !== 'undefined' && startDate ? '&startDate=' + encodeURIComponent(startDate) : '' %><%= typeof endDate !== 'undefined' && endDate ? '&endDate=' + encodeURIComponent(endDate) : '' %>" 
                                        style="padding: 8px 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; text-decoration: none;">
                                         Next Page →
                                     </a>
