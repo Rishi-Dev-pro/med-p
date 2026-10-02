@@ -147,7 +147,7 @@ async function calculateObservedFrequency(deviceId, sampleLimit = 10) {
         };
     }
 
-    const cleanDeviceId = deviceId.trim().toUpperCase();
+    const cleanDeviceId = deviceId.trim();
 
     // Covered query using compound index { deviceId: 1, timestamp: -1 }
     const readings = await SensorReading.find({ deviceId: cleanDeviceId })
@@ -197,8 +197,94 @@ async function calculateObservedFrequency(deviceId, sampleLimit = 10) {
     };
 }
 
+/**
+ * Batch calculate observed transmission frequencies for multiple devices.
+ * Uses a single aggregation pipeline instead of N individual database queries.
+ * 
+ * @param {string[]} deviceIds - Array of device identifiers
+ * @param {number} [sampleLimit=10] - Number of readings per device to inspect
+ * @returns {Promise<Map<string, { frequencySeconds: number|null, formatted: string, sampleCount: number }>>}
+ */
+async function batchCalculateObservedFrequency(deviceIds, sampleLimit = 10) {
+    const freqMap = new Map();
+    if (!Array.isArray(deviceIds) || deviceIds.length === 0) {
+        return freqMap;
+    }
+
+    const cleanIds = [...new Set(deviceIds.filter(Boolean).map((id) => String(id).trim()))];
+    if (cleanIds.length === 0) {
+        return freqMap;
+    }
+
+    // Single aggregation query over compound index { deviceId: 1, timestamp: -1 }
+    const aggregated = await SensorReading.aggregate([
+        { $match: { deviceId: { $in: cleanIds } } },
+        { $sort: { timestamp: -1 } },
+        {
+            $group: {
+                _id: "$deviceId",
+                timestamps: { $push: "$timestamp" }
+            }
+        },
+        {
+            $project: {
+                deviceId: "$_id",
+                recentTimestamps: { $slice: ["$timestamps", Math.min(sampleLimit, 50)] }
+            }
+        }
+    ]);
+
+    const aggregatedMap = new Map(aggregated.map((a) => [a.deviceId, a.recentTimestamps]));
+
+    for (const devId of cleanIds) {
+        const timestamps = aggregatedMap.get(devId) || [];
+        if (timestamps.length < 2) {
+            freqMap.set(devId, {
+                frequencySeconds: null,
+                formatted: "Insufficient data",
+                sampleCount: timestamps.length
+            });
+            continue;
+        }
+
+        let totalDeltaSeconds = 0;
+        let deltaCount = 0;
+
+        for (let i = 0; i < timestamps.length - 1; i++) {
+            const newer = new Date(timestamps[i]).getTime();
+            const older = new Date(timestamps[i + 1]).getTime();
+            const delta = (newer - older) / 1000;
+            if (delta > 0) {
+                totalDeltaSeconds += delta;
+                deltaCount++;
+            }
+        }
+
+        if (deltaCount === 0) {
+            freqMap.set(devId, {
+                frequencySeconds: null,
+                formatted: "Insufficient data",
+                sampleCount: timestamps.length
+            });
+            continue;
+        }
+
+        const avgSeconds = Math.round((totalDeltaSeconds / deltaCount) * 10) / 10;
+        const formatted = avgSeconds < 60 ? `~${avgSeconds}s` : `~${Math.round(avgSeconds / 60)}m`;
+
+        freqMap.set(devId, {
+            frequencySeconds: avgSeconds,
+            formatted,
+            sampleCount: timestamps.length
+        });
+    }
+
+    return freqMap;
+}
+
 module.exports = {
     getDeviceHealth,
     formatLastSeen,
-    calculateObservedFrequency
+    calculateObservedFrequency,
+    batchCalculateObservedFrequency
 };

@@ -333,9 +333,21 @@ Verified simulator pipeline integration with `tests/iotSimulator.js`:
 
 ---
 
-## 21. Git Commit
+## 21. Post-Review Refinements
 
-- **Commit Message:** `feat: implement phase 12 device telemetry health dashboard`
+1. **Hydration Query Batching (N+1 Elimination):**
+   - Replaced per-device queries in `deviceHealthController.js` and `adminDeviceController.js` (`hydratedDevices` / `getDevices`) with a single `$in` query for patient names and a batch aggregation pipeline `batchCalculateObservedFrequency`.
+   - Aggregates recent timestamps with `$slice` over `{ deviceId: 1, timestamp: -1 }` compound index in a single round-trip.
+2. **Device ID Normalization Invariant:**
+   - Switched device ID normalization in `calculateObservedFrequency` and `batchCalculateObservedFrequency` to `deviceId.trim()` (trim-only), matching `SensorReading.deviceId` storage and ensuring lowercase/mixed-case IDs match telemetry readings.
+3. **Test Database Safety Guards:**
+   - Updated `tests/deviceHealthValidation.test.js` to ensure both the configured URI (`TEST_DB_URI`) and the connected database name (`mongoose.connection.name`) contain `"test"` before executing destructive collection cleanups (`deleteMany`).
+
+---
+
+## 22. Git Commit
+
+- **Commit Message:** `fix(phase-12): batch device health hydration, fix deviceId casing, and add test db guard`
 - **Scope Included:** All Phase 12 implementation files, tests, documentation, and completion report.
 
 ---

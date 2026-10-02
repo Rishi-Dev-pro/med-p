@@ -16,7 +16,7 @@ const {
     TARGET_TYPES
 } = require("../config/constants");
 const { isApiRequest } = require("../middleware/authMiddleware");
-const { getDeviceHealth, calculateObservedFrequency } = require("../utils/deviceHealth");
+const { getDeviceHealth, calculateObservedFrequency, batchCalculateObservedFrequency } = require("../utils/deviceHealth");
 
 /**
  * Helper to safely sanitize a device document for API responses.
@@ -44,37 +44,43 @@ const getDevices = async (req, res) => {
     try {
         const rawDevices = await Device.find().sort({ deviceId: 1 }).lean();
 
-        const devices = await Promise.all(
-            rawDevices.map(async (dev) => {
-                let patientName = null;
-                if (dev.patientId) {
-                    const pat = await Patient.findOne({ patientId: dev.patientId }).select("name").lean();
-                    if (pat) {
-                        patientName = pat.name;
-                    }
-                }
+        // 1. Single batch query for patient names
+        const patientIds = [...new Set(rawDevices.map((d) => d.patientId).filter(Boolean))];
+        const patients = patientIds.length > 0
+            ? await Patient.find({ patientId: { $in: patientIds } }).select("patientId name").lean()
+            : [];
+        const patientNameMap = new Map(patients.map((p) => [p.patientId, p.name]));
 
-                const healthInfo = getDeviceHealth(dev);
-                const freq = await calculateObservedFrequency(dev.deviceId, 10);
+        // 2. Single batch aggregation for transmission frequencies
+        const deviceIds = rawDevices.map((d) => d.deviceId);
+        const frequencyMap = await batchCalculateObservedFrequency(deviceIds, 10);
 
-                return {
-                    deviceId: dev.deviceId,
-                    type: dev.type || "VITAL_TELEMETRY",
-                    status: dev.status,
-                    health: healthInfo.health,
-                    ageSeconds: healthInfo.ageSeconds,
-                    patientId: dev.patientId,
-                    patientName,
-                    resetCount: dev.resetCount || 0,
-                    lastSeen: dev.lastSeen || null,
-                    lastSeenFormatted: healthInfo.lastSeenFormatted,
-                    observedFrequency: freq.formatted,
-                    frequencySeconds: freq.frequencySeconds,
-                    createdAt: dev.createdAt,
-                    updatedAt: dev.updatedAt
-                };
-            })
-        );
+        const devices = rawDevices.map((dev) => {
+            const healthInfo = getDeviceHealth(dev);
+            const freq = frequencyMap.get(dev.deviceId) || {
+                frequencySeconds: null,
+                formatted: "Insufficient data",
+                sampleCount: 0
+            };
+
+            return {
+                deviceId: dev.deviceId,
+                type: dev.type || "VITAL_TELEMETRY",
+                status: dev.status,
+                health: healthInfo.health,
+                ageSeconds: healthInfo.ageSeconds,
+                patientId: dev.patientId,
+                patientName: dev.patientId ? (patientNameMap.get(dev.patientId) || null) : null,
+                resetCount: dev.resetCount || 0,
+                lastSeen: dev.lastSeen || null,
+                lastSeenFormatted: healthInfo.lastSeenFormatted,
+                observedFrequency: freq.formatted,
+                frequencySeconds: freq.frequencySeconds,
+                createdAt: dev.createdAt,
+                updatedAt: dev.updatedAt
+            };
+        });
+
 
         if (isApiRequest(req)) {
             return res.status(200).json({

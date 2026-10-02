@@ -84,9 +84,14 @@ const {
     DEVICE_HEALTH
 } = require("../src/config/constants");
 const { hashPassword, generateToken } = require("../src/utils/authUtils");
-const { getDeviceHealth, formatLastSeen, calculateObservedFrequency } = require("../src/utils/deviceHealth");
+const { getDeviceHealth, formatLastSeen, calculateObservedFrequency, batchCalculateObservedFrequency } = require("../src/utils/deviceHealth");
 
 const TEST_DB_URI = process.env.TEST_MONGODB_URI || "mongodb://127.0.0.1:27017/health_monitoring_phase12_test";
+
+// Safety guard: validate that configured test database URI contains 'test'
+if (!TEST_DB_URI.toLowerCase().includes("test")) {
+    throw new Error("Refusing to run tests: Configured database URI must contain 'test' to prevent destructive cleanup.");
+}
 
 let server;
 let baseUrl;
@@ -150,6 +155,12 @@ let patient2Token;
 async function setup() {
     console.log("Connecting to test database:", TEST_DB_URI);
     await mongoose.connect(TEST_DB_URI);
+
+    // Validate that the connected database name contains "test" before running destructive cleanup
+    const dbName = (mongoose.connection && mongoose.connection.name) || "";
+    if (!dbName.toLowerCase().includes("test")) {
+        throw new Error(`Refusing destructive cleanup on non-test database: '${dbName}'`);
+    }
 
     // Clean test collections
     await User.deleteMany({});
@@ -673,6 +684,19 @@ async function runAllTests() {
         assert(freq.frequencySeconds === 2, `Expected 2s average delta, got ${freq.frequencySeconds}`);
         assert(freq.formatted === "~2s", `Expected ~2s formatted, got ${freq.formatted}`);
         assert(freq.sampleCount === 4, `Expected sampleCount 4, got ${freq.sampleCount}`);
+
+        // Verify trim-only normalization matches lowercase/mixed-case device IDs
+        await SensorReading.create([
+            { deviceId: "dev-lowercase-01", patientId: "PAT-001", doctorId: "DOC-A", value1: 70, value2: 98, timestamp: new Date(baseTime) },
+            { deviceId: "dev-lowercase-01", patientId: "PAT-001", doctorId: "DOC-A", value1: 71, value2: 98, timestamp: new Date(baseTime - 3000) }
+        ]);
+        const lowerFreq = await calculateObservedFrequency("  dev-lowercase-01  ", 10);
+        assert(lowerFreq.frequencySeconds === 3, `Expected 3s average delta for lowercase device ID, got ${lowerFreq.frequencySeconds}`);
+
+        // Verify batchCalculateObservedFrequency
+        const batchMap = await batchCalculateObservedFrequency(["DEV-FREQ", "dev-lowercase-01"], 10);
+        assert(batchMap.get("DEV-FREQ") && batchMap.get("DEV-FREQ").frequencySeconds === 2, "Batch must calculate DEV-FREQ correctly");
+        assert(batchMap.get("dev-lowercase-01") && batchMap.get("dev-lowercase-01").frequencySeconds === 3, "Batch must calculate dev-lowercase-01 correctly");
     });
 
     await runTest(29, "insufficient readings produce safe empty/insufficient state", async () => {

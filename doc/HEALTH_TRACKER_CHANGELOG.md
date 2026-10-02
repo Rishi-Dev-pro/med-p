@@ -50,6 +50,10 @@
      - Implemented 40 automated tests covering all 8 requirement domains in Section 32: valid/invalid ingestion lastSeen updates, exact boundaries (59s, 60s, 61s, 599s, 600s, null, inactive), reset invariant preservation, RBAC authorization, lifecycle status separation, bounded frequency calculation, security tampering, and in-place real-time UI logic.
      - Added `test:health` to `package.json` and master `npm test`.
      - Full regression: 396/396 tests passing across all 13 test suites.
+  9. Post-Review Optimizations & Safety Hardening:
+     - Batch Hydration & Frequency Aggregation: Replaced per-device database queries in `deviceHealthController.js` and `adminDeviceController.js` with a single `$in` query for patient names and `batchCalculateObservedFrequency` using MongoDB aggregation with `$slice`.
+     - Device ID Normalization: Switched `cleanDeviceId` normalization in `calculateObservedFrequency` and `batchCalculateObservedFrequency` to `deviceId.trim()` (trim-only), matching `SensorReading.deviceId` storage and ensuring lowercase/mixed-case IDs match telemetry readings.
+     - Test Database Guard: Added guards in `tests/deviceHealthValidation.test.js` validating that `TEST_DB_URI` and `mongoose.connection.name` contain `'test'` before running destructive collection cleanups (`deleteMany`).
 - **Reason:**
   Enable healthcare providers and system administrators to immediately detect hardware outages, stale data transmissions, and offline telemetry units in real time without refreshing pages or polling databases.
 - **Files Affected:**

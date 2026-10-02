@@ -6,7 +6,7 @@
 const Device = require("../models/Device");
 const Patient = require("../models/Patient");
 const { ROLES } = require("../config/constants");
-const { getDeviceHealth, calculateObservedFrequency } = require("../utils/deviceHealth");
+const { getDeviceHealth, calculateObservedFrequency, batchCalculateObservedFrequency } = require("../utils/deviceHealth");
 
 /**
  * GET /api/devices/health
@@ -157,38 +157,43 @@ const getDeviceHealthSummary = async (req, res) => {
         }
 
         // ==========================================
-        // HYDRATE HEALTH & FREQUENCY METRICS
+        // HYDRATE HEALTH & FREQUENCY METRICS (BATCHED)
         // ==========================================
-        const hydratedDevices = await Promise.all(
-            devicesToInspect.map(async (dev) => {
-                const healthInfo = getDeviceHealth(dev);
-                const frequency = await calculateObservedFrequency(dev.deviceId, 10);
+        // 1. Single batch query for patient names
+        const patientIds = [...new Set(devicesToInspect.map((d) => d.patientId).filter(Boolean))];
+        const patients = patientIds.length > 0
+            ? await Patient.find({ patientId: { $in: patientIds } }).select("patientId name").lean()
+            : [];
+        const patientNameMap = new Map(patients.map((p) => [p.patientId, p.name]));
 
-                let patientName = null;
-                if (dev.patientId) {
-                    const pat = await Patient.findOne({ patientId: dev.patientId }).select("name").lean();
-                    if (pat) {
-                        patientName = pat.name;
-                    }
-                }
+        // 2. Single batch aggregation for transmission frequencies
+        const deviceIds = devicesToInspect.map((d) => d.deviceId);
+        const frequencyMap = await batchCalculateObservedFrequency(deviceIds, 10);
 
-                return {
-                    deviceId: dev.deviceId,
-                    type: dev.type || "VITAL_TELEMETRY",
-                    status: dev.status,
-                    health: healthInfo.health,
-                    ageSeconds: healthInfo.ageSeconds,
-                    lastSeen: healthInfo.lastSeen,
-                    lastSeenFormatted: healthInfo.lastSeenFormatted,
-                    resetCount: dev.resetCount || 0,
-                    patientId: dev.patientId || null,
-                    patientName,
-                    observedFrequency: frequency.formatted,
-                    frequencySeconds: frequency.frequencySeconds,
-                    sampleCount: frequency.sampleCount
-                };
-            })
-        );
+        const hydratedDevices = devicesToInspect.map((dev) => {
+            const healthInfo = getDeviceHealth(dev);
+            const frequency = frequencyMap.get(dev.deviceId) || {
+                frequencySeconds: null,
+                formatted: "Insufficient data",
+                sampleCount: 0
+            };
+
+            return {
+                deviceId: dev.deviceId,
+                type: dev.type || "VITAL_TELEMETRY",
+                status: dev.status,
+                health: healthInfo.health,
+                ageSeconds: healthInfo.ageSeconds,
+                lastSeen: healthInfo.lastSeen,
+                lastSeenFormatted: healthInfo.lastSeenFormatted,
+                resetCount: dev.resetCount || 0,
+                patientId: dev.patientId || null,
+                patientName: dev.patientId ? (patientNameMap.get(dev.patientId) || null) : null,
+                observedFrequency: frequency.formatted,
+                frequencySeconds: frequency.frequencySeconds,
+                sampleCount: frequency.sampleCount
+            };
+        });
 
         return res.status(200).json({
             success: true,
