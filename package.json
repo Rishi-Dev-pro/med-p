@@ -23,7 +23,8 @@
     "test:health": "node tests/deviceHealthValidation.test.js",
     "test:activity": "node tests/activityAuditValidation.test.js",
     "test:robustness": "node tests/errorRobustnessValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health && npm run test:activity && npm run test:robustness"
+    "test:security": "node tests/securityHardeningValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health && npm run test:activity && npm run test:robustness && npm run test:security"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +37,7 @@
     "dotenv": "^18.0.4",
     "ejs": "^6.0.1",
     "express": "^5.2.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.2",
     "socket.io": "^4.8.4"

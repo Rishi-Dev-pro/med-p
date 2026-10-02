@@ -60,6 +60,8 @@ router.patch("/devices/:deviceId/deactivate", authenticate, requireRole(ROLES.SU
 router.post("/devices/:deviceId/reset", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.resetDevice);
 router.delete("/devices/:deviceId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.deleteDevice);
 router.post("/devices/:deviceId/assign", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.assignDevice);
+router.post("/devices/:deviceId/rotate-key", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.rotateDeviceApiKey);
+router.post("/devices/:deviceId/revoke-key", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.revokeDeviceApiKey);
 
 // Super Admin Logout (Supports GET and POST)
 router.all("/logout", adminController.logout);

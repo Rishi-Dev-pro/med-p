@@ -48,6 +48,13 @@ const errorHandler = (err, req, res, next) => { // eslint-disable-line no-unused
         errors = undefined;
     }
 
+    // 1b. Payload size limit exceeded (413 Payload Too Large)
+    else if (err.type === "entity.too.large" || statusCode === 413 || err.status === 413) {
+        statusCode = 413;
+        message = "Payload too large. Request body exceeds maximum allowed size.";
+        errors = undefined;
+    }
+
     // 2. Mongoose Schema Validation Error
     else if (err.name === "ValidationError") {
         statusCode = 400;

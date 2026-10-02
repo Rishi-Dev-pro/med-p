@@ -18,6 +18,7 @@ const {
 const { isApiRequest } = require("../middleware/authMiddleware");
 const { getDeviceHealth, calculateObservedFrequency, batchCalculateObservedFrequency } = require("../utils/deviceHealth");
 const { logActivity } = require("../utils/activityLogger");
+const { generateDeviceApiKey } = require("../utils/apiKeyUtils");
 
 /**
  * Helper to safely sanitize a device document for API responses.
@@ -32,6 +33,11 @@ const sanitizeDevice = (dev) => {
         patientId: dev.patientId,
         resetCount: dev.resetCount || 0,
         lastSeen: dev.lastSeen || null,
+        hasApiKey: Boolean(dev.apiKeyPrefix || dev.apiKeyHash),
+        apiKeyPrefix: dev.apiKeyPrefix || null,
+        apiKeyCreatedAt: dev.apiKeyCreatedAt || null,
+        apiKeyLastUsedAt: dev.apiKeyLastUsedAt || null,
+        apiKeyRotatedAt: dev.apiKeyRotatedAt || null,
         createdAt: dev.createdAt,
         updatedAt: dev.updatedAt
     };
@@ -132,17 +138,23 @@ const createDevice = async (req, res) => {
             });
         }
 
-        // 2. Create device: status=ACTIVE, patientId=null, resetCount=0
+        // 2. Generate secure device API key on creation
+        const keyInfo = generateDeviceApiKey();
+
+        // 3. Create device: status=ACTIVE, patientId=null, resetCount=0
         const device = await Device.create({
             deviceId: cleanDeviceId,
             type: type && typeof type === "string" && type.trim() ? type.trim().toUpperCase() : "VITAL_TELEMETRY",
             status: DEVICE_STATUS.ACTIVE,
             patientId: null,
             resetCount: 0,
-            lastSeen: null
+            lastSeen: null,
+            apiKeyHash: keyInfo.hash,
+            apiKeyPrefix: keyInfo.prefix,
+            apiKeyCreatedAt: new Date()
         });
 
-        // 3. Log lifecycle audit event
+        // 4. Log lifecycle audit event
         try {
             const io = req.app && req.app.get ? req.app.get("io") : null;
             await logActivity(
@@ -154,7 +166,8 @@ const createDevice = async (req, res) => {
                 {
                     type: device.type,
                     status: device.status,
-                    resetCount: device.resetCount
+                    resetCount: device.resetCount,
+                    keyPrefix: keyInfo.prefix
                 },
                 io
             );
@@ -165,7 +178,8 @@ const createDevice = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: `Device ${cleanDeviceId} created successfully`,
-            device: sanitizeDevice(device)
+            device: sanitizeDevice(device),
+            apiKey: keyInfo.rawKey
         });
     } catch (error) {
         console.error("Device creation error:", error.message);
@@ -771,6 +785,112 @@ const assignDevice = async (req, res) => {
     }
 };
 
+/**
+ * Rotate API key for an IoT device
+ * POST /api/admin/devices/:deviceId/rotate-key
+ */
+const rotateDeviceApiKey = async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        if (!deviceId || typeof deviceId !== "string" || !deviceId.trim()) {
+            return res.status(400).json({ success: false, message: "Valid deviceId is required" });
+        }
+
+        const cleanDeviceId = deviceId.trim().toUpperCase();
+        const device = await Device.findOne({ deviceId: cleanDeviceId });
+        if (!device) {
+            return res.status(404).json({ success: false, message: `Device ${cleanDeviceId} not found` });
+        }
+
+        const keyInfo = generateDeviceApiKey();
+        const now = new Date();
+
+        device.apiKeyHash = keyInfo.hash;
+        device.apiKeyPrefix = keyInfo.prefix;
+        device.apiKeyRotatedAt = now;
+        await device.save();
+
+        // Audit log
+        try {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_API_KEY_ROTATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
+                    keyPrefix: keyInfo.prefix,
+                    rotatedAt: now.toISOString()
+                },
+                io
+            );
+        } catch (auditErr) {
+            console.warn("Key rotation audit warning:", auditErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `API key for device ${cleanDeviceId} rotated successfully`,
+            apiKey: keyInfo.rawKey,
+            apiKeyPrefix: keyInfo.prefix
+        });
+    } catch (error) {
+        console.error("Rotate API key error:", error.message);
+        return res.status(500).json({ success: false, message: "Failed to rotate API key" });
+    }
+};
+
+/**
+ * Revoke API key for an IoT device
+ * POST /api/admin/devices/:deviceId/revoke-key
+ */
+const revokeDeviceApiKey = async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        if (!deviceId || typeof deviceId !== "string" || !deviceId.trim()) {
+            return res.status(400).json({ success: false, message: "Valid deviceId is required" });
+        }
+
+        const cleanDeviceId = deviceId.trim().toUpperCase();
+        const device = await Device.findOne({ deviceId: cleanDeviceId });
+        if (!device) {
+            return res.status(404).json({ success: false, message: `Device ${cleanDeviceId} not found` });
+        }
+
+        const previousPrefix = device.apiKeyPrefix;
+        device.apiKeyHash = null;
+        device.apiKeyPrefix = null;
+        await device.save();
+
+        // Audit log
+        try {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_API_KEY_REVOKED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
+                    revokedPrefix: previousPrefix
+                },
+                io
+            );
+        } catch (auditErr) {
+            console.warn("Key revocation audit warning:", auditErr.message);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `API key for device ${cleanDeviceId} revoked successfully`
+        });
+    } catch (error) {
+        console.error("Revoke API key error:", error.message);
+        return res.status(500).json({ success: false, message: "Failed to revoke API key" });
+    }
+};
+
 module.exports = {
     getDevices,
     createDevice,
@@ -779,5 +899,7 @@ module.exports = {
     deactivateDevice,
     resetDevice,
     deleteDevice,
-    assignDevice
+    assignDevice,
+    rotateDeviceApiKey,
+    revokeDeviceApiKey
 };

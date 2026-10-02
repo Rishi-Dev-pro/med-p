@@ -1,4 +1,8 @@
-require("dotenv").config();
+const { validateEnv } = require("./config/envValidator");
+const { isOriginAllowed } = require("./config/security");
+
+// Fail fast if environment is misconfigured
+validateEnv();
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -201,7 +205,12 @@ const startServer = async () => {
     // Create Socket.IO server
     const io = new Server(httpServer, {
         cors: {
-            origin: process.env.CORS_ORIGIN || "*",
+            origin: (origin, callback) => {
+                if (isOriginAllowed(origin)) {
+                    return callback(null, true);
+                }
+                return callback(new Error("CORS origin not allowed for Socket.IO"));
+            },
             credentials: true
         }
     });

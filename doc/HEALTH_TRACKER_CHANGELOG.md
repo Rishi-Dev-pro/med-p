@@ -5,6 +5,57 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 15: Security Hardening & Penetration Defense
+- **Phase / Task:** PHASE 15 (`TASK-15.1`, `TASK-15.2`)
+- **Change:**
+  1. HTTP Security Headers with Helmet (`src/config/security.js`, `src/app.js`):
+     - Integrated `helmet` (v8.3.0) with an EJS, Chart.js, and WebSocket tailored Content-Security-Policy (CSP).
+     - Allows `'self'` and `'unsafe-inline'` for scripts and styles to maintain dashboard graphs and dynamic styling without breaking functionality; strictly forbids `unsafe-eval`.
+     - Permitted `ws:` and `wss:` under `connect-src` for real-time telemetry and audit feed streaming.
+     - Enforced `frame-ancestors: ["'none'"]` and `X-Frame-Options: DENY` for clickjacking defense.
+     - Enforced `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`.
+     - Enabled HSTS (1 year maxAge, includeSubDomains, preload) strictly in production (`NODE_ENV === "production"`), keeping local HTTP development functional.
+  2. Strict Environment-Driven CORS Policy (`src/config/security.js`, `src/app.js`, `src/server.js`):
+     - Replaced permissive CORS with environment allowlisting via `CORS_ORIGIN`.
+     - Disallowed wildcard origins (`*`) when credentials/cookies are active.
+     - Dynamic origin validator safely permitting same-origin navigation, rejecting unauthorized origins, and emitting `CORS_REJECTED` audit events.
+     - Pinned CORS origins across Express HTTP routes and Socket.IO server configurations.
+  3. Authentication Brute-Force Rate Limiting (`src/middleware/rateLimiter.js`, `src/routes/authRoutes.js`):
+     - Added dedicated sliding-window rate limiters for authentication endpoints:
+       - `authLoginRateLimiter`: protects `POST /api/auth/login` against password guessing, brute force, and credential stuffing.
+       - `authRegisterRateLimiter`: protects `POST /api/auth/register` against automated account creation flooding.
+     - Returns HTTP 429 Too Many Requests with standard `X-RateLimit-*` and `Retry-After` headers.
+     - Configured safe Express `trust proxy` settings based on environment variable `TRUST_PROXY`.
+  4. IoT Device API Key Architecture & Ingestion Authentication (`src/utils/apiKeyUtils.js`, `src/models/Device.js`, `src/routes/iotRoutes.js`, `src/controllers/adminDeviceController.js`):
+     - Added cryptographically secure random API key generation (`crypto.randomBytes(32)` -> `htk_<64-hex>`).
+     - Plaintext API keys are **never stored in the database**; only SHA-256 hashes (`apiKeyHash`) are persisted.
+     - Verified using `crypto.timingSafeEqual` to prevent timing attacks.
+     - Extended `Device` model with `apiKeyHash` (`select: false`), `apiKeyPrefix`, `apiKeyCreatedAt`, `apiKeyLastUsedAt`, and `apiKeyRotatedAt`.
+     - Implemented Super Admin key lifecycle endpoints:
+       - Generation during device provisioning (`POST /api/admin/devices`).
+       - Rotation endpoint (`POST /api/admin/devices/:deviceId/rotate-key`): revokes old key immediately, generates new key, logs `DEVICE_API_KEY_ROTATED`.
+       - Revocation endpoint (`POST /api/admin/devices/:deviceId/revoke-key`): clears key hash, logs `DEVICE_API_KEY_REVOKED`.
+     - Sanitized device representations: raw API keys are only returned once on generation/rotation; inventory and list responses never expose secrets.
+     - Preserved historical telemetry: resetting assignments or revoking keys strictly preserves existing `SensorReading` records.
+  5. Centralized Environment Configuration Validation (`src/config/envValidator.js`, `src/server.js`):
+     - Added fail-fast environment validator executed on server startup.
+     - Production startup strictly terminates if `JWT_SECRET` is missing, shorter than 32 characters, or matches known default development keys.
+     - Rejects wildcard CORS or malformed `MONGODB_URI` schemes in production.
+     - Added safe redacted diagnostics (`getSanitizedConfig()`) that never print credentials or secrets.
+     - Created clean `.env.example` with placeholders; verified `.gitignore` excludes `.env`.
+  6. JWT & Session Security Hardening (`src/utils/authUtils.js`):
+     - Pinned signing and verification algorithms strictly to `HS256`, preventing algorithm-confusion attacks (e.g. `none` algorithm).
+     - Confirmed cookie security invariants: `httpOnly: true`, `sameSite: "lax"`, and production-aware `secure: true`.
+     - Payloads restricted to minimal identity claims (`userId`, `role`, `profileId`).
+  7. Request Hardening & Socket.IO Access Verification (`src/app.js`, `src/middleware/errorHandler.js`):
+     - Added request body size limits (`100kb`) on `express.json` and `express.urlencoded`, returning HTTP 413 on oversized payloads.
+     - Penetration-tested Socket.IO against room spoofing, expired tokens, forged identity payloads, and suspended accounts.
+  8. Security Hardening Automated Test Suite (`tests/securityHardeningValidation.test.js`):
+     - Implemented 50 automated security validation tests covering Helmet, CORS, Auth rate limiting, Environment validation, IoT API keys, JWT tampering, IDOR/RBAC, Socket security, Request hardening, and Audit logging.
+     - All 50/50 Phase 15 tests pass in ~550ms.
+     - Verified zero regressions across all 16 test suites: **503/503 tests passing**.
+     - `npm audit` confirmed **0 vulnerabilities**.
+
 ### 2026-10-02 — Phase 14: Error Handling, Edge Cases & System Robustness
 - **Phase / Task:** PHASE 14 (`TASK-14.1`, `TASK-14.2`, `TASK-14.3`)
 - **Change:**

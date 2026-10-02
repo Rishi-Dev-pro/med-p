@@ -11,11 +11,24 @@ const patientRoutes = require("./routes/patientRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
 const apiRoutes = require("./routes/apiRoutes");
 
+const { getHelmetMiddleware, getCorsOptions } = require("./config/security");
+
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Trust proxy configuration (only trusted when explicitly enabled)
+if (process.env.TRUST_PROXY) {
+    app.set("trust proxy", process.env.TRUST_PROXY === "true" ? true : process.env.TRUST_PROXY);
+}
+
+// 1. Helmet HTTP Security Headers (Phase 15)
+app.use(getHelmetMiddleware());
+
+// 2. Strict CORS allowlisting (Phase 15)
+app.use(cors(getCorsOptions()));
+
+// 3. Request parsing with body size limits (100kb)
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(cookieParser());
 
 // ==========================================

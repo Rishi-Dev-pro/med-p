@@ -31,6 +31,24 @@ const deviceSchema = new mongoose.Schema(
         },
         apiKeyHash: {
             type: String,
+            default: null,
+            select: false
+        },
+        apiKeyPrefix: {
+            type: String,
+            default: null,
+            trim: true
+        },
+        apiKeyCreatedAt: {
+            type: Date,
+            default: null
+        },
+        apiKeyLastUsedAt: {
+            type: Date,
+            default: null
+        },
+        apiKeyRotatedAt: {
+            type: Date,
             default: null
         },
         resetCount: {

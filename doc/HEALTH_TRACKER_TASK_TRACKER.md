@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks (Phases 0-16)** | 51 |
-| **Tasks Completed** | 47 |
+| **Tasks Completed** | 49 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 4 |
-| **Overall Core Completion** | 92.2% (47 of 51 core tasks; 100% of Phases 0-14) |
+| **Tasks Not Started** | 2 |
+| **Overall Core Completion** | 96.1% (49 of 51 core tasks; 100% of Phases 0-15) |
 
 
 ---
@@ -225,8 +225,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-15.1` | Configure Helmet security headers, CORS strict whitelist, and auth endpoint rate limiters | `NOT_STARTED` | Phase 14 | `src/server.js`, `src/config/security.js`, `src/middleware/rateLimiter.js` | None (Not yet executed) | - | Prevents brute force and injection |
-| `TASK-15.2` | Implement environment variable schema validation on server startup and IoT device API key verification | `NOT_STARTED` | Phase 14 | `src/config/envValidator.js`, `src/routes/iotRoutes.js` | None (Not yet executed) | - | Blocks boot if secrets missing |
+| `TASK-15.1` | Configure Helmet security headers, CORS strict whitelist, and auth endpoint rate limiters | `DONE` | Phase 14 | `src/config/security.js`, `src/app.js`, `src/middleware/rateLimiter.js`, `src/routes/authRoutes.js` | `node tests/securityHardeningValidation.test.js` (Tests 1–13 PASS) | 2026-10-02 | Helmet CSP with websockets & inline EJS/Chart.js support; strict CORS allowlist; brute-force login and register rate limiters |
+| `TASK-15.2` | Implement environment variable schema validation on server startup and IoT device API key verification | `DONE` | Phase 14 | `src/config/envValidator.js`, `src/server.js`, `src/utils/apiKeyUtils.js`, `src/models/Device.js`, `src/routes/iotRoutes.js`, `src/controllers/adminDeviceController.js` | `node tests/securityHardeningValidation.test.js` (Tests 14–50 PASS) | 2026-10-02 | Fail-fast production startup validation; SHA-256 device API key hashing; rotate/revoke admin lifecycle; timing-safe verification; IDOR & socket security verified |
 
 ---
 

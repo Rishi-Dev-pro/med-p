@@ -17,8 +17,9 @@
  * @returns {Function} Express middleware with .reset() and .hits map
  */
 function createRateLimiter(options = {}) {
-    const windowMs = options.windowMs || 60 * 1000;
-    const max = options.max !== undefined ? options.max : 120;
+    const initialWindowMs = options.windowMs || 60 * 1000;
+    const getWindowMs = () => (limiter.windowMs !== undefined ? limiter.windowMs : initialWindowMs);
+    const getMax = () => (limiter.max !== undefined ? limiter.max : (options.max !== undefined ? options.max : 120));
     const message = options.message || "Too many telemetry requests. Please slow down.";
     const keyGenerator = options.keyGenerator || ((req) => {
         return req.ip ||
@@ -38,7 +39,7 @@ function createRateLimiter(options = {}) {
                 hits.delete(key);
             }
         }
-    }, Math.max(windowMs, 10000));
+    }, Math.max(initialWindowMs, 10000));
 
     if (sweepInterval.unref) {
         sweepInterval.unref(); // Prevent timer from keeping the Node.js process alive
@@ -47,24 +48,26 @@ function createRateLimiter(options = {}) {
     const limiter = (req, res, next) => {
         const key = keyGenerator(req);
         const now = Date.now();
+        const currentWindowMs = getWindowMs();
+        const currentMax = getMax();
 
         let record = hits.get(key);
         if (!record || now >= record.resetTime) {
-            record = { count: 1, resetTime: now + windowMs };
+            record = { count: 1, resetTime: now + currentWindowMs };
             hits.set(key, record);
         } else {
             record.count += 1;
         }
 
-        const remaining = Math.max(0, max - record.count);
+        const remaining = Math.max(0, currentMax - record.count);
         const resetSeconds = Math.ceil(Math.max(0, record.resetTime - now) / 1000);
 
         // Standard rate-limiting headers
-        res.setHeader("X-RateLimit-Limit", max);
+        res.setHeader("X-RateLimit-Limit", currentMax);
         res.setHeader("X-RateLimit-Remaining", remaining);
         res.setHeader("X-RateLimit-Reset", Math.ceil(record.resetTime / 1000));
 
-        if (record.count > max) {
+        if (record.count > currentMax) {
             res.setHeader("Retry-After", resetSeconds);
             return res.status(429).json({
                 success: false,
@@ -86,12 +89,28 @@ function createRateLimiter(options = {}) {
 
 // Default IoT ingestion rate limiter: 120 requests per minute per IP
 const iotRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000,
-    max: 120,
+    windowMs: Number(process.env.IOT_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+    max: Number(process.env.IOT_RATE_LIMIT_MAX_REQUESTS) || 120,
     message: "Too many telemetry requests. Please slow down."
+});
+
+// Dedicated authentication login rate limiter (brute force protection)
+const authLoginRateLimiter = createRateLimiter({
+    windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+    max: Number(process.env.AUTH_LOGIN_MAX_ATTEMPTS) || 50,
+    message: "Too many authentication attempts. Please try again later."
+});
+
+// Dedicated registration rate limiter
+const authRegisterRateLimiter = createRateLimiter({
+    windowMs: Number(process.env.AUTH_REGISTER_WINDOW_MS) || 60 * 60 * 1000,
+    max: Number(process.env.AUTH_REGISTER_MAX_ATTEMPTS) || 50,
+    message: "Too many account registration attempts. Please try again later."
 });
 
 module.exports = {
     createRateLimiter,
-    iotRateLimiter
+    iotRateLimiter,
+    authLoginRateLimiter,
+    authRegisterRateLimiter
 };

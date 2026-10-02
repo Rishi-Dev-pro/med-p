@@ -5,10 +5,39 @@ const Patient = require("../models/Patient");
 const Doctor = require("../models/Doctor");
 const SensorReading = require("../models/SensorReading");
 const { iotRateLimiter } = require("../middleware/rateLimiter");
+const { verifyDeviceApiKey } = require("../utils/apiKeyUtils");
 
 const router = express.Router();
 
 router.post("/data", iotRateLimiter, async (req, res, next) => {
+    // 0. Extract Device API Key (Bearer token or x-api-key)
+    let candidateApiKey = null;
+    const authHeader = req.headers.authorization || req.headers["x-api-key"];
+    if (authHeader) {
+        if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+            candidateApiKey = authHeader.substring(7).trim();
+            if (!candidateApiKey) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Malformed device authorization header"
+                });
+            }
+        } else if (!req.headers.authorization && typeof req.headers["x-api-key"] === "string") {
+            candidateApiKey = req.headers["x-api-key"].trim();
+            if (!candidateApiKey) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Malformed device API key header"
+                });
+            }
+        } else {
+            return res.status(401).json({
+                success: false,
+                message: "Malformed device authorization header. Expected 'Bearer <DEVICE_API_KEY>'"
+            });
+        }
+    }
+
     const { deviceId, value1, value2, timestamp } = req.body;
 
     // ==========================================
@@ -73,7 +102,7 @@ router.post("/data", iotRateLimiter, async (req, res, next) => {
     }
 
     // ==========================================
-    // STAGE 5 & 6 — DEVICE, PATIENT & DOCTOR RESOLUTION
+    // STAGE 5 & 6 — DEVICE, PATIENT & DOCTOR RESOLUTION & AUTH
     // ==========================================
 
     const cleanDeviceId = deviceId.trim();
@@ -84,12 +113,29 @@ router.post("/data", iotRateLimiter, async (req, res, next) => {
     try {
         device = await Device.findOne({
             deviceId: cleanDeviceId
-        });
+        }).select("+apiKeyHash");
 
         if (!device) {
             return res.status(404).json({
                 success: false,
                 message: "Device not registered"
+            });
+        }
+
+        // Device API Key Authentication Check (Phase 15)
+        const isStrictApiKeyRequired = process.env.REQUIRE_DEVICE_API_KEY === "true" || process.env.NODE_ENV === "production";
+
+        if (candidateApiKey) {
+            if (!device.apiKeyHash || !verifyDeviceApiKey(candidateApiKey, device.apiKeyHash)) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Invalid device credentials"
+                });
+            }
+        } else if (isStrictApiKeyRequired || device.apiKeyHash) {
+            return res.status(401).json({
+                success: false,
+                message: "Device API key required"
             });
         }
 
@@ -160,9 +206,13 @@ router.post("/data", iotRateLimiter, async (req, res, next) => {
     // Device.lastSeen represents the timestamp of the most recent VALID telemetry ingestion
     const ingestionTime = new Date();
     try {
+        const updateFields = { lastSeen: ingestionTime };
+        if (candidateApiKey) {
+            updateFields.apiKeyLastUsedAt = ingestionTime;
+        }
         await Device.updateOne(
             { _id: device._id },
-            { $set: { lastSeen: ingestionTime } }
+            { $set: updateFields }
         );
         device.lastSeen = ingestionTime;
     } catch (lastSeenError) {

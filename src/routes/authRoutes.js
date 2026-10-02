@@ -8,9 +8,11 @@ const router = express.Router();
 const authController = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
 
+const { authLoginRateLimiter, authRegisterRateLimiter } = require("../middleware/rateLimiter");
+
 // Public authentication endpoints
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+router.post("/register", authRegisterRateLimiter, authController.register);
+router.post("/login", authLoginRateLimiter, authController.login);
 router.post("/logout", authController.logout);
 router.get("/device-status/:deviceId", authController.getDeviceStatus);
 

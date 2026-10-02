@@ -47,12 +47,14 @@ const generateToken = (payload) => {
     };
 
     return jwt.sign(claims, JWT_SECRET, {
-        expiresIn: JWT_EXPIRES_IN
+        expiresIn: JWT_EXPIRES_IN,
+        algorithm: "HS256"
     });
 };
 
 /**
  * Cryptographically verify a JWT token.
+ * Strictly pins algorithm to HS256 to defend against algorithm confusion attacks.
  * @param {string} token - Signed JWT string
  * @returns {object} - Decoded claims
  */
@@ -60,7 +62,9 @@ const verifyToken = (token) => {
     if (!token || typeof token !== "string") {
         throw new Error("Token must be a valid string");
     }
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET, {
+        algorithms: ["HS256"]
+    });
 };
 
 module.exports = {
