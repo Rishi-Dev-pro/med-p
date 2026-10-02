@@ -254,12 +254,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!response.ok) {
                 isSwitchingPatient = false;
-                pendingDoctorReadings = [];
                 if (response.status === 403) {
+                    pendingDoctorReadings = [];
                     showState("error", "Access denied: Patient is not assigned to your clinical care");
                     return;
                 }
                 if (response.status === 404) {
+                    pendingDoctorReadings = [];
                     showState("error", "Patient record not found");
                     return;
                 }
@@ -294,9 +295,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             isSwitchingPatient = false;
-            pendingDoctorReadings = [];
             console.error("Failed to load patient recent telemetry:", err);
-            showState("error", "Unable to load telemetry history.");
+
+            // Replay valid buffered readings for the selected patient on transient failure
+            for (const pending of pendingDoctorReadings) {
+                manager.addReading(pending);
+            }
+            pendingDoctorReadings = [];
+
+            if (manager.getCount() > 0) {
+                showState("ready");
+                renderChart();
+            } else {
+                showState("error", "Unable to load telemetry history.");
+            }
         }
     }
 

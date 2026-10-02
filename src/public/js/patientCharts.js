@@ -221,8 +221,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!response.ok) {
                 isInitialLoading = false;
-                pendingReadings = [];
                 if (response.status === 401 || response.status === 403) {
+                    pendingReadings = [];
                     showState("error", "Access denied: Unauthorized to view telemetry");
                     return;
                 }
@@ -249,9 +249,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (err) {
             isInitialLoading = false;
-            pendingReadings = [];
             console.error("Failed to load historical telemetry:", err);
-            showState("error", "Unable to load telemetry history.");
+
+            // Replay valid buffered socket readings on transient history failure
+            for (const pending of pendingReadings) {
+                manager.addReading(pending);
+            }
+            pendingReadings = [];
+
+            if (manager.getCount() > 0) {
+                showState("ready");
+                renderChart();
+            } else {
+                showState("error", "Unable to load telemetry history.");
+            }
         }
     }
 
