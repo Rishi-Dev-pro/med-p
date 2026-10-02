@@ -38,18 +38,34 @@
                 </div>
             <% } else { %>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                    <% patients.forEach(p => { %>
+                    <% patients.forEach(p => { 
+                        const dev = p.device;
+                        const health = dev ? (dev.health || 'OFFLINE') : 'OFFLINE';
+                    %>
                         <div id="patient-card-<%= p.patientId %>" style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; transition: border-color 0.25s ease;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
                                 <div>
                                     <div style="font-size: 16px; font-weight: 700; color: var(--text);"><%= p.name %></div>
                                     <div class="id-cell" style="font-size: 11px; margin-top: 2px;"><%= p.patientId %> · <%= p.age %> yrs</div>
                                 </div>
-                                <div style="text-align: right;">
-                                    <% if (p.device) { %>
-                                        <span class="id-cell" style="font-size: 11px;"><%= p.device.deviceId %></span>
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                                    <% if (dev) { %>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span class="id-cell" style="font-size: 11px;"><%= dev.deviceId %></span>
+                                            <span class="telemetry-health-badge health-badge-<%= health.toLowerCase() %>" 
+                                                  id="doctor-health-badge-<%= p.patientId %>" 
+                                                  data-patient-id="<%= p.patientId %>"
+                                                  data-device-id="<%= dev.deviceId %>"
+                                                  data-status="<%= (dev.status || 'ACTIVE').toUpperCase() %>"
+                                                  data-last-seen="<%= dev.lastSeen ? new Date(dev.lastSeen).toISOString() : '' %>"
+                                                  role="status" 
+                                                  aria-label="Device health: <%= health %>">
+                                                <span class="health-pulse-dot"></span>
+                                                <span class="health-text" id="doctor-health-text-<%= p.patientId %>"><%= health %></span>
+                                            </span>
+                                        </div>
                                     <% } else { %>
-                                        <span style="font-size: 11px; color: var(--muted);">No device</span>
+                                        <span style="font-size: 11px; color: var(--muted); font-style: italic;">No device assigned</span>
                                     <% } %>
                                 </div>
                             </div>
@@ -73,7 +89,12 @@
                             </div>
 
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
-                                <span>Last Sync: <span id="time-<%= p.patientId %>"><%= p.latestReading ? new Date(p.latestReading.timestamp).toLocaleTimeString() : 'Never' %></span></span>
+                                <div>
+                                    <span>Last Seen: <strong id="doctor-last-seen-<%= p.patientId %>" style="color: var(--text);"><%= dev ? (dev.lastSeenFormatted || 'Never') : 'Never' %></strong></span>
+                                    <% if (dev && dev.observedFrequency) { %>
+                                        <span style="margin-left: 8px; opacity: 0.8;">· Tx: <strong style="color: var(--text);"><%= dev.observedFrequency %></strong></span>
+                                    <% } %>
+                                </div>
                                 <a href="/doctor/history?patientId=<%= p.patientId %>" style="color: #60A5FA; text-decoration: none; font-weight: 600;">History &rarr;</a>
                             </div>
                         </div>
@@ -89,6 +110,82 @@
     document.addEventListener("DOMContentLoaded", () => {
         const statusDot = document.getElementById("doctorSocketDot");
         const statusText = document.getElementById("doctorSocketText");
+
+        // Format relative timestamp helper
+        function formatRelativeTime(timestamp, now) {
+            if (!timestamp) return "Never";
+            const ageSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+            if (ageSeconds < 5) return "Just now";
+            if (ageSeconds < 60) return `${ageSeconds}s ago`;
+            if (ageSeconds < 120) return "1 minute ago";
+            if (ageSeconds < 3600) return `${Math.floor(ageSeconds / 60)} minutes ago`;
+            if (ageSeconds < 7200) return "1 hour ago";
+            if (ageSeconds < 86400) return `${Math.floor(ageSeconds / 3600)} hours ago`;
+            return `${Math.floor(ageSeconds / 86400)} days ago`;
+        }
+
+        // Periodic client-side recalculation of health badges
+        function recalculateDoctorHealth() {
+            const badges = document.querySelectorAll("[id^='doctor-health-badge-']");
+            const now = Date.now();
+
+            badges.forEach((badge) => {
+                const patientId = badge.dataset.patientId;
+                const status = (badge.dataset.status || "ACTIVE").toUpperCase();
+                const lastSeenStr = badge.dataset.lastSeen;
+                const textEl = document.getElementById(`doctor-health-text-${patientId}`);
+                const lastSeenEl = document.getElementById(`doctor-last-seen-${patientId}`);
+
+                if (!textEl) return;
+
+                let health = "OFFLINE";
+                let formattedTime = "Never";
+
+                if (status !== "ACTIVE") {
+                    health = "OFFLINE";
+                    if (lastSeenStr) {
+                        formattedTime = formatRelativeTime(new Date(lastSeenStr).getTime(), now);
+                    }
+                } else if (!lastSeenStr) {
+                    health = "OFFLINE";
+                    formattedTime = "Never";
+                } else {
+                    const lastSeenTime = new Date(lastSeenStr).getTime();
+                    if (isNaN(lastSeenTime)) {
+                        health = "OFFLINE";
+                        formattedTime = "Never";
+                    } else {
+                        const ageMs = now - lastSeenTime;
+                        formattedTime = formatRelativeTime(lastSeenTime, now);
+
+                        if (ageMs < 60 * 1000) {
+                            health = "ONLINE";
+                        } else if (ageMs < 600 * 1000) {
+                            health = "STALE";
+                        } else {
+                            health = "OFFLINE";
+                        }
+                    }
+                }
+
+                badge.className = `telemetry-health-badge health-badge-${health.toLowerCase()}`;
+                badge.setAttribute("aria-label", `Device health: ${health}`);
+                textEl.textContent = health;
+
+                if (lastSeenEl && formattedTime) {
+                    lastSeenEl.textContent = formattedTime;
+                }
+            });
+        }
+
+        // Prevent duplicate timers
+        if (window._doctorHealthTimer) {
+            clearInterval(window._doctorHealthTimer);
+        }
+        window._doctorHealthTimer = setInterval(recalculateDoctorHealth, 5000);
+        window.addEventListener("beforeunload", () => {
+            if (window._doctorHealthTimer) clearInterval(window._doctorHealthTimer);
+        });
 
         if (typeof io !== "undefined") {
             const socket = io({
@@ -123,8 +220,8 @@
 
                 const hrEl = document.getElementById(`hr-${data.patientId}`);
                 const spo2El = document.getElementById(`spo2-${data.patientId}`);
-                const timeEl = document.getElementById(`time-${data.patientId}`);
                 const cardEl = document.getElementById(`patient-card-${data.patientId}`);
+                const badgeEl = document.getElementById(`doctor-health-badge-${data.patientId}`);
 
                 if (hrEl && data.value1 !== undefined) {
                     hrEl.textContent = data.value1;
@@ -132,9 +229,13 @@
                 if (spo2El && data.value2 !== undefined) {
                     spo2El.textContent = data.value2;
                 }
-                if (timeEl && data.timestamp) {
-                    timeEl.textContent = new Date(data.timestamp).toLocaleTimeString();
+
+                if (badgeEl) {
+                    const nowIso = data.lastSeen || (data.timestamp ? new Date(data.timestamp).toISOString() : new Date().toISOString());
+                    badgeEl.dataset.lastSeen = nowIso;
                 }
+
+                recalculateDoctorHealth();
 
                 if (cardEl) {
                     cardEl.style.borderColor = "var(--burnt-orange)";

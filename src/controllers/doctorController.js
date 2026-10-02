@@ -8,6 +8,7 @@ const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const SensorReading = require("../models/SensorReading");
 const { isApiRequest } = require("../middleware/authMiddleware");
+const { getDeviceHealth, calculateObservedFrequency } = require("../utils/deviceHealth");
 
 /**
  * Doctor Overview Dashboard
@@ -153,9 +154,29 @@ const getMonitor = async (req, res) => {
 
         const patientCards = await Promise.all(
             patients.map(async (p) => {
-                const device = p.deviceId
-                    ? await Device.findOne({ deviceId: p.deviceId }).select("deviceId status").lean()
-                    : null;
+                let deviceData = null;
+                if (p.deviceId) {
+                    const rawDev = await Device.findOne({ deviceId: p.deviceId })
+                        .select("deviceId status lastSeen resetCount type")
+                        .lean();
+
+                    if (rawDev) {
+                        const healthInfo = getDeviceHealth(rawDev);
+                        const freq = await calculateObservedFrequency(rawDev.deviceId, 10);
+                        deviceData = {
+                            deviceId: rawDev.deviceId,
+                            type: rawDev.type || "VITAL_TELEMETRY",
+                            status: rawDev.status,
+                            health: healthInfo.health,
+                            ageSeconds: healthInfo.ageSeconds,
+                            lastSeen: rawDev.lastSeen || null,
+                            lastSeenFormatted: healthInfo.lastSeenFormatted,
+                            resetCount: rawDev.resetCount || 0,
+                            observedFrequency: freq.formatted,
+                            frequencySeconds: freq.frequencySeconds
+                        };
+                    }
+                }
 
                 const latestReading = await SensorReading.findOne({ patientId: p.patientId })
                     .sort({ timestamp: -1 })
@@ -165,7 +186,7 @@ const getMonitor = async (req, res) => {
                     patientId: p.patientId,
                     name: p.name,
                     age: p.age,
-                    device,
+                    device: deviceData,
                     latestReading
                 };
             })

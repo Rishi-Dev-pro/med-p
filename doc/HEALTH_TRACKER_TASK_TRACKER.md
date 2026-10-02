@@ -26,11 +26,12 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 39 |
+| **Tasks Completed** | 41 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 7 |
-| **Overall Completion** | 84.8% |
+| **Tasks Not Started** | 5 |
+| **Overall Completion** | 89.1% |
+
 
 ---
 
@@ -189,8 +190,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-12.1` | Update IoT ingestion to set `Device.lastSeen = new Date()` and compute connection health status (`Online`, `Stale`, `Offline`) | `NOT_STARTED` | Phase 5, Phase 9 | `src/routes/iotRoutes.js`, `src/services/deviceHealthService.js` | None (Not yet executed) | - | Time-window threshold evaluation |
-| `TASK-12.2` | Display health pulse indicators (Green / Amber / Gray) across Admin hardware inventory and Doctor live monitor | `NOT_STARTED` | `TASK-12.1` | `src/views/admin/devices.ejs`, `src/views/doctor/monitor.ejs` | None (Not yet executed) | - | Immediate device outage detection |
+| `TASK-12.1` | Update IoT ingestion to set `Device.lastSeen = new Date()` and compute connection health status (`Online`, `Stale`, `Offline`) | `DONE` | Phase 5, Phase 9 | `src/routes/iotRoutes.js`, `src/utils/deviceHealth.js`, `src/controllers/deviceHealthController.js`, `src/routes/apiRoutes.js` | `node tests/deviceHealthValidation.test.js` (Tests 1-14, 24-37 PASS) | 2026-10-02 | Single deterministic calculation utility: `<60s` ONLINE, `60-599s` STALE, `>=600s` or null or INACTIVE OFFLINE; bounded frequency calculation; GET `/api/devices/health` with strict RBAC |
+| `TASK-12.2` | Display health pulse indicators (Green / Amber / Gray) across Admin hardware inventory and Doctor live monitor | `DONE` | `TASK-12.1` | `src/views/admin/devices.ejs`, `src/views/doctor/monitor.ejs`, `src/controllers/adminDeviceController.js`, `src/controllers/doctorController.js`, `src/public/css/global.css` | `node tests/deviceHealthValidation.test.js` (Tests 15-23, 38-40 PASS) | 2026-10-02 | Accessible indicators with text badges (`● ONLINE`, `● STALE`, `● OFFLINE`), in-place client periodic timers (5s), Socket.IO live transitions, no full page reloads |
 
 ---
 

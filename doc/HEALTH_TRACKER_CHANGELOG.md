@@ -5,6 +5,67 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 12: Device Monitoring & Telemetry Health Dashboard
+- **Phase / Task:** PHASE 12 (`TASK-12.1`, `TASK-12.2`)
+- **Change:**
+  1. Zero Database Schema Modification & Invariant Preservation:
+     - Confirmed `Device.lastSeen` (Date, default `null`) and `Device.resetCount` (Number, default `0`) already exist from previous phases.
+     - Preserved exact field names and meanings; zero schema additions or modifications.
+     - Preserved immutability of historical `SensorReading` records, timestamps, values, and historical `doctorId` snapshots.
+  2. IoT Telemetry Ingestion Atomicity & `lastSeen` Update (`src/routes/iotRoutes.js`):
+     - `Device.lastSeen = new Date()` is updated strictly upon successful `SensorReading.create`.
+     - Zero partial writes: `lastSeen` is never updated on 400 (validation failure), 403 (inactive device), 404 (unknown device or unassigned device), or 500 (database failure).
+     - Enhanced Socket.IO `sensor-reading` emission to include `lastSeen: ingestionTime.toISOString()` and emitted to `patient:<id>`, `doctor:<id>`, and `admin:telemetry` rooms.
+     - Returned `lastSeen` ISO timestamp in 201 response payload.
+  3. Single Centralized Telemetry Health Utility (`src/utils/deviceHealth.js`):
+     - Implemented `getDeviceHealth(target, now = new Date(), statusOverride = null)` as the single source of truth.
+     - Strict deterministic boundaries:
+       - `age < 60s` &rarr; `ONLINE`
+       - `60s <= age < 600s` (10 minutes) &rarr; `STALE`
+       - `age >= 600s` &rarr; `OFFLINE`
+       - `lastSeen === null` &rarr; `OFFLINE` (Last Seen formatted as `"Never"`)
+       - `Device.status !== 'ACTIVE'` &rarr; `OFFLINE` (preserves distinct lifecycle status `ACTIVE`/`INACTIVE` vs telemetry health `ONLINE`/`STALE`/`OFFLINE`).
+     - Implemented `formatLastSeen(lastSeen, now)` returning human-readable strings ("Just now", "25s ago", "3 minutes ago", "Never").
+     - Implemented bounded `calculateObservedFrequency(deviceId, sampleLimit = 10)` calculating average delta between consecutive readings using covered compound index `{ deviceId: 1, timestamp: -1 }`.
+  4. Scoped Device Health Diagnostics Endpoint (`GET /api/devices/health`):
+     - Implemented `deviceHealthController.getDeviceHealthSummary` in `src/controllers/deviceHealthController.js`.
+     - Mounted in `src/routes/apiRoutes.js` guarded by `authenticate`.
+     - Strict RBAC:
+       - `SUPER_ADMIN`: global inventory visibility.
+       - `DOCTOR`: only devices belonging to currently assigned patients (`patient.doctorId === req.user.profileId`); query parameter tampering (`?patientId=`, `?deviceId=`, `?doctorId=`) rejected with 403 Forbidden.
+       - `PATIENT`: only their own assigned device; tampering rejected with 403 Forbidden.
+     - Never exposes device secrets, `apiKeyHash`, password hashes, or JWTs.
+  5. Admin Hardware Inventory Dashboard (`src/views/admin/devices.ejs` & `src/controllers/adminDeviceController.js`):
+     - Enriched device inventory table with Telemetry Health (`● ONLINE`, `● STALE`, `● OFFLINE`), Connection Health indicators (green pulse, amber pulse, gray dot), Last Seen human-readable text + time, Reset Count, and Observed Transmission Frequency.
+     - Implemented in-place periodic client timer (5s) recalculating status from `data-last-seen` timestamps without page reload.
+     - Integrated Socket.IO listener for live status transitions when devices transmit.
+     - Guarded duplicate intervals via `window._deviceHealthTimer`.
+  6. Doctor Clinical Monitor Dashboard (`src/views/doctor/monitor.ejs` & `src/controllers/doctorController.js`):
+     - Displayed device telemetry health badges, Last Seen, and transmission frequency on assigned patient cards.
+     - Implemented in-place periodic client timer (5s) and Socket.IO real-time transition to `ONLINE`.
+  7. Global Health Indicator Styling & Animations (`src/public/css/global.css`):
+     - Added `.telemetry-health-badge`, `.health-badge-online`, `.health-badge-stale`, `.health-badge-offline`, and keyframe pulse animations (`healthPulseGreen`, `healthPulseAmber`).
+     - Fully accessible: pairs visual pulse dot with explicit textual status label.
+  8. Comprehensive Automated Test Suite (`tests/deviceHealthValidation.test.js`):
+     - Implemented 40 automated tests covering all 8 requirement domains in Section 32: valid/invalid ingestion lastSeen updates, exact boundaries (59s, 60s, 61s, 599s, 600s, null, inactive), reset invariant preservation, RBAC authorization, lifecycle status separation, bounded frequency calculation, security tampering, and in-place real-time UI logic.
+     - Added `test:health` to `package.json` and master `npm test`.
+     - Full regression: 396/396 tests passing across all 13 test suites.
+- **Reason:**
+  Enable healthcare providers and system administrators to immediately detect hardware outages, stale data transmissions, and offline telemetry units in real time without refreshing pages or polling databases.
+- **Files Affected:**
+  - `package.json`
+  - `src/config/constants.js`
+  - `src/controllers/adminDeviceController.js`
+  - `src/controllers/deviceHealthController.js`
+  - `src/controllers/doctorController.js`
+  - `src/public/css/global.css`
+  - `src/routes/apiRoutes.js`
+  - `src/routes/iotRoutes.js`
+  - `src/utils/deviceHealth.js`
+  - `src/views/admin/devices.ejs`
+  - `src/views/doctor/monitor.ejs`
+  - `tests/deviceHealthValidation.test.js`
+
 ### 2026-10-02 — Phase 11: Charts & Time-Series Data Visualization
 - **Phase / Task:** PHASE 11 (`TASK-11.1`, `TASK-11.2`)
 - **Change:**

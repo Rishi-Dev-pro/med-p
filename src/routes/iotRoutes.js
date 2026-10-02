@@ -153,6 +153,22 @@ router.post("/data", async (req, res) => {
     }
 
     // ==========================================
+    // STAGE 7.1 — UPDATE DEVICE LAST SEEN
+    // ==========================================
+
+    // Device.lastSeen represents the timestamp of the most recent VALID telemetry ingestion
+    const ingestionTime = new Date();
+    try {
+        await Device.updateOne(
+            { _id: device._id },
+            { $set: { lastSeen: ingestionTime } }
+        );
+        device.lastSeen = ingestionTime;
+    } catch (lastSeenError) {
+        console.warn("Notice: Failed to update device lastSeen:", lastSeenError.message);
+    }
+
+    // ==========================================
     // STAGE 8 — REAL-TIME DELIVERY (NON-BLOCKING)
     // ==========================================
 
@@ -167,7 +183,8 @@ router.post("/data", async (req, res) => {
                 doctorId: doctor ? doctor.doctorId : null,
                 value1: sensorReading.value1,
                 value2: sensorReading.value2,
-                timestamp: sensorReading.timestamp
+                timestamp: sensorReading.timestamp,
+                lastSeen: ingestionTime.toISOString()
             };
 
             io.to(`patient:${patient.patientId}`).emit(
@@ -181,6 +198,11 @@ router.post("/data", async (req, res) => {
                     realtimeData
                 );
             }
+
+            io.to("admin:telemetry").emit(
+                "sensor-reading",
+                realtimeData
+            );
 
             console.log("Real-time sensor reading delivered via Socket.IO.");
         } catch (socketError) {
@@ -220,7 +242,9 @@ router.post("/data", async (req, res) => {
                 value1,
                 value2,
                 timestamp: parsedTimestamp.toISOString()
-            }
+            },
+
+            lastSeen: ingestionTime.toISOString()
         }
     });
 });

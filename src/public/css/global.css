@@ -392,3 +392,90 @@ h1 {
     }
 
 }
+
+/* ========================================================
+   PHASE 12: TELEMETRY HEALTH STATUS BADGES & PULSE ANIMATIONS
+   ======================================================== */
+.telemetry-health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    line-height: 1.4;
+    transition: all 0.25s ease;
+    user-select: none;
+}
+
+.health-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ONLINE: Green pulse indicator */
+.health-badge-online {
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ADE80;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.health-badge-online .health-pulse-dot {
+    background: #22C55E;
+    box-shadow: 0 0 6px #22C55E;
+    animation: healthPulseGreen 2s infinite ease-in-out;
+}
+
+/* STALE: Amber pulse indicator */
+.health-badge-stale {
+    background: rgba(245, 158, 11, 0.12);
+    color: #FBBF24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.health-badge-stale .health-pulse-dot {
+    background: #F59E0B;
+    box-shadow: 0 0 6px #F59E0B;
+    animation: healthPulseAmber 2s infinite ease-in-out;
+}
+
+/* OFFLINE: Gray indicator */
+.health-badge-offline {
+    background: rgba(156, 163, 175, 0.12);
+    color: #9CA3AF;
+    border: 1px solid rgba(156, 163, 175, 0.25);
+}
+
+.health-badge-offline .health-pulse-dot {
+    background: #9CA3AF;
+    box-shadow: none;
+}
+
+@keyframes healthPulseGreen {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+@keyframes healthPulseAmber {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}

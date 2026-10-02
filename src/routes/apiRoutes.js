@@ -8,6 +8,14 @@ const router = express.Router();
 const readingController = require("../controllers/readingController");
 const { authenticate } = require("../middleware/authMiddleware");
 const { requirePatientOwnership } = require("../middleware/roleMiddleware");
+const deviceHealthController = require("../controllers/deviceHealthController");
+
+// GET /api/devices/health (Phase 12: Device Telemetry Health Diagnostics)
+router.get(
+    "/devices/health",
+    authenticate,
+    deviceHealthController.getDeviceHealthSummary
+);
 
 // GET /api/readings/:patientId/recent (Phase 11: Charts & Time-Series Data Visualization)
 router.get(

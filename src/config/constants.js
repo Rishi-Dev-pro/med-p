@@ -61,12 +61,20 @@ const AUDIT_ACTIONS = Object.freeze({
     SYSTEM_INIT: "SYSTEM_INIT"
 });
 
+const DEVICE_HEALTH = Object.freeze({
+    ONLINE: "ONLINE",
+    STALE: "STALE",
+    OFFLINE: "OFFLINE"
+});
+
 module.exports = {
     ROLES,
     ACCOUNT_STATUS,
     DOCTOR_STATUS,
     DEVICE_STATUS,
+    DEVICE_HEALTH,
     TARGET_TYPES,
     ACTOR_ROLES,
     AUDIT_ACTIONS
 };
+

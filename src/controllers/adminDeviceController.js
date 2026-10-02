@@ -16,6 +16,7 @@ const {
     TARGET_TYPES
 } = require("../config/constants");
 const { isApiRequest } = require("../middleware/authMiddleware");
+const { getDeviceHealth, calculateObservedFrequency } = require("../utils/deviceHealth");
 
 /**
  * Helper to safely sanitize a device document for API responses.
@@ -53,14 +54,22 @@ const getDevices = async (req, res) => {
                     }
                 }
 
+                const healthInfo = getDeviceHealth(dev);
+                const freq = await calculateObservedFrequency(dev.deviceId, 10);
+
                 return {
                     deviceId: dev.deviceId,
                     type: dev.type || "VITAL_TELEMETRY",
                     status: dev.status,
+                    health: healthInfo.health,
+                    ageSeconds: healthInfo.ageSeconds,
                     patientId: dev.patientId,
                     patientName,
                     resetCount: dev.resetCount || 0,
                     lastSeen: dev.lastSeen || null,
+                    lastSeenFormatted: healthInfo.lastSeenFormatted,
+                    observedFrequency: freq.formatted,
+                    frequencySeconds: freq.frequencySeconds,
                     createdAt: dev.createdAt,
                     updatedAt: dev.updatedAt
                 };
@@ -204,8 +213,14 @@ const getDeviceById = async (req, res) => {
             .limit(10)
             .lean();
 
+        const healthInfo = getDeviceHealth(rawDevice);
+        const freq = await calculateObservedFrequency(cleanDeviceId, 10);
+
         const device = {
             ...sanitizeDevice(rawDevice),
+            health: healthInfo.health,
+            lastSeenFormatted: healthInfo.lastSeenFormatted,
+            observedFrequency: freq.formatted,
             patient,
             telemetry: {
                 totalReadings,
@@ -439,7 +454,11 @@ const resetDevice = async (req, res) => {
             });
             transactionSucceeded = true;
         } catch (txErr) {
-            if (txErr.message && txErr.message.includes("Transaction numbers are only allowed on a replica set member or mongos")) {
+            if (
+                txErr.message &&
+                (txErr.message.includes("Transaction numbers are only allowed on a replica set member or mongos") ||
+                 txErr.message.includes("does not support retryable writes"))
+            ) {
                 // Standalone MongoDB environment detected
                 transactionSucceeded = false;
             } else {
@@ -679,7 +698,11 @@ const assignDevice = async (req, res) => {
             });
             transactionSucceeded = true;
         } catch (txErr) {
-            if (txErr.message && txErr.message.includes("Transaction numbers are only allowed on a replica set member or mongos")) {
+            if (
+                txErr.message &&
+                (txErr.message.includes("Transaction numbers are only allowed on a replica set member or mongos") ||
+                 txErr.message.includes("does not support retryable writes"))
+            ) {
                 transactionSucceeded = false;
             } else {
                 throw txErr;

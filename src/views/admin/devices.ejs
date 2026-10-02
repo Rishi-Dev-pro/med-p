@@ -54,10 +54,12 @@
                                     <th>Device ID</th>
                                     <th>Type</th>
                                     <th>Lifecycle Status</th>
+                                    <th>Telemetry Health</th>
                                     <th>Binding Status</th>
                                     <th>Assigned Patient</th>
                                     <th>Reset Count</th>
-                                    <th>Last Activity / Updated</th>
+                                    <th>Last Seen</th>
+                                    <th>Tx Frequency</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -65,8 +67,12 @@
                                 <% devices.forEach(d => { 
                                     const isActive = (d.status === 'ACTIVE' || d.status === 'active');
                                     const isAssigned = !!d.patientId;
+                                    const health = d.health || 'OFFLINE';
                                 %>
-                                    <tr id="row-<%= d.deviceId %>">
+                                    <tr id="row-<%= d.deviceId %>" 
+                                        data-device-id="<%= d.deviceId %>"
+                                        data-status="<%= (d.status || 'ACTIVE').toUpperCase() %>"
+                                        data-last-seen="<%= d.lastSeen ? new Date(d.lastSeen).toISOString() : '' %>">
                                         <td class="id-cell">
                                             <strong><%= d.deviceId %></strong>
                                         </td>
@@ -74,6 +80,15 @@
                                         <td>
                                             <span class="status-pill <%= isActive ? 'active-pill' : 'inactive-pill' %>" id="status-<%= d.deviceId %>">
                                                 <%= (d.status || 'ACTIVE').toUpperCase() %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="telemetry-health-badge health-badge-<%= health.toLowerCase() %>" 
+                                                  id="health-badge-<%= d.deviceId %>" 
+                                                  role="status" 
+                                                  aria-label="Device health: <%= health %>">
+                                                <span class="health-pulse-dot"></span>
+                                                <span class="health-text" id="health-text-<%= d.deviceId %>"><%= health %></span>
                                             </span>
                                         </td>
                                         <td>
@@ -88,7 +103,7 @@
                                                     <span class="metric-sub">(<%= d.patientName %>)</span>
                                                 <% } %>
                                             <% } else { %>
-                                                <span class="metric-sub" style="color: var(--muted); font-style: italic;">None (In Inventory)</span>
+                                                <span class="metric-sub" style="color: var(--muted); font-style: italic;">None (Unassigned)</span>
                                             <% } %>
                                         </td>
                                         <td>
@@ -96,7 +111,17 @@
                                             <span class="metric-sub">resets</span>
                                         </td>
                                         <td>
-                                            <%= d.lastSeen ? new Date(d.lastSeen).toLocaleString() : (d.updatedAt ? new Date(d.updatedAt).toLocaleString() : (d.createdAt ? new Date(d.createdAt).toLocaleString() : "—")) %>
+                                            <div id="last-seen-container-<%= d.deviceId %>">
+                                                <span id="last-seen-text-<%= d.deviceId %>" style="font-weight: 600;"><%= d.lastSeenFormatted || 'Never' %></span>
+                                                <div class="metric-sub" id="last-seen-iso-<%= d.deviceId %>">
+                                                    <%= d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Never' %>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span id="freq-<%= d.deviceId %>" class="metric-sub" style="font-weight: 600; color: var(--text);">
+                                                <%= d.observedFrequency || 'Insufficient data' %>
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="action-btn-group">
@@ -245,6 +270,7 @@
 <!-- ========================================================
      CLIENT-SIDE LIFECYCLE SCRIPTS
      ======================================================== -->
+<script src="/socket.io/socket.io.js"></script>
 <script>
     let activeResetTarget = null;
     let activeDeleteTarget = null;
@@ -415,6 +441,120 @@
             btn.disabled = false;
             btn.textContent = "Decommission Device";
         }
+    }
+
+    // ========================================================
+    // PHASE 12: REAL-TIME HEALTH DIAGNOSTICS & PERIODIC TIMER
+    // ========================================================
+
+    function formatRelativeTime(timestamp, now) {
+        if (!timestamp) return "Never";
+        const ageSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+        if (ageSeconds < 5) return "Just now";
+        if (ageSeconds < 60) return `${ageSeconds}s ago`;
+        if (ageSeconds < 120) return "1 minute ago";
+        if (ageSeconds < 3600) return `${Math.floor(ageSeconds / 60)} minutes ago`;
+        if (ageSeconds < 7200) return "1 hour ago";
+        if (ageSeconds < 86400) return `${Math.floor(ageSeconds / 3600)} hours ago`;
+        return `${Math.floor(ageSeconds / 86400)} days ago`;
+    }
+
+    function recalculateDeviceHealth() {
+        const rows = document.querySelectorAll("tr[data-device-id]");
+        const now = Date.now();
+
+        rows.forEach(row => {
+            const deviceId = row.dataset.deviceId;
+            const status = (row.dataset.status || "ACTIVE").toUpperCase();
+            const lastSeenStr = row.dataset.lastSeen;
+            const badgeEl = document.getElementById(`health-badge-${deviceId}`);
+            const textEl = document.getElementById(`health-text-${deviceId}`);
+            const lastSeenTextEl = document.getElementById(`last-seen-text-${deviceId}`);
+
+            if (!badgeEl || !textEl) return;
+
+            let health = "OFFLINE";
+            let formattedLastSeen = "Never";
+
+            if (status !== "ACTIVE") {
+                health = "OFFLINE";
+                if (lastSeenStr) {
+                    formattedLastSeen = formatRelativeTime(new Date(lastSeenStr).getTime(), now);
+                }
+            } else if (!lastSeenStr) {
+                health = "OFFLINE";
+                formattedLastSeen = "Never";
+            } else {
+                const lastSeenTime = new Date(lastSeenStr).getTime();
+                if (isNaN(lastSeenTime)) {
+                    health = "OFFLINE";
+                    formattedLastSeen = "Never";
+                } else {
+                    const ageMs = now - lastSeenTime;
+                    formattedLastSeen = formatRelativeTime(lastSeenTime, now);
+
+                    // Boundaries: <60s -> ONLINE, 60s-599s -> STALE, >=600s -> OFFLINE
+                    if (ageMs < 60 * 1000) {
+                        health = "ONLINE";
+                    } else if (ageMs < 600 * 1000) {
+                        health = "STALE";
+                    } else {
+                        health = "OFFLINE";
+                    }
+                }
+            }
+
+            badgeEl.className = `telemetry-health-badge health-badge-${health.toLowerCase()}`;
+            badgeEl.setAttribute("aria-label", `Device health: ${health}`);
+            textEl.textContent = health;
+
+            if (lastSeenTextEl && formattedLastSeen) {
+                lastSeenTextEl.textContent = formattedLastSeen;
+            }
+        });
+    }
+
+    // Prevent duplicate timers
+    if (window._deviceHealthTimer) {
+        clearInterval(window._deviceHealthTimer);
+    }
+    window._deviceHealthTimer = setInterval(recalculateDeviceHealth, 5000);
+    window.addEventListener("beforeunload", () => {
+        if (window._deviceHealthTimer) {
+            clearInterval(window._deviceHealthTimer);
+        }
+    });
+
+    // Socket.IO real-time ingestion listener
+    if (typeof io !== "undefined") {
+        const socket = io({
+            transports: ["websocket", "polling"],
+            withCredentials: true
+        });
+
+        socket.on("sensor-reading", (data) => {
+            if (!data || !data.deviceId) return;
+            const row = document.getElementById(`row-${data.deviceId}`);
+            if (!row) return;
+
+            const nowIso = data.lastSeen || (data.timestamp ? new Date(data.timestamp).toISOString() : new Date().toISOString());
+            row.dataset.lastSeen = nowIso;
+
+            const isoEl = document.getElementById(`last-seen-iso-${data.deviceId}`);
+            if (isoEl) {
+                isoEl.textContent = new Date(nowIso).toLocaleTimeString();
+            }
+
+            recalculateDeviceHealth();
+
+            // Subtle row flash effect
+            row.style.transition = "background-color 0.4s ease";
+            const origBg = row.style.backgroundColor;
+            row.style.backgroundColor = "rgba(34, 197, 94, 0.08)";
+            setTimeout(() => {
+                row.style.backgroundColor = origBg;
+            }, 600);
+        });
     }
 </script>
 </body>
