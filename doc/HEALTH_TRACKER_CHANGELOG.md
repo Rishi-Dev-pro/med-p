@@ -5,6 +5,56 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 11: Charts & Time-Series Data Visualization
+- **Phase / Task:** PHASE 11 (`TASK-11.1`, `TASK-11.2`)
+- **Change:**
+  1. Zero Database Schema Modification & Telemetry Immutability:
+     - Confirmed zero collection additions, zero model mutations, and zero schema changes.
+     - Preserved existing compound index `{ patientId: 1, timestamp: -1 }` on `SensorReading`.
+     - Read-only historical access; historical `SensorReading.doctorId`, `Patient.doctorId`, and `Device.patientId` remain strictly immutable.
+  2. Implemented Recent Readings Endpoint (`GET /api/readings/:patientId/recent`):
+     - Added `readingController.getRecentReadings` in `src/controllers/readingController.js`.
+     - Lightweight bounded slice: default `limit = 50`, hard-clamped maximum `limit = 100`. Returns 400 Bad Request on invalid/non-positive limit.
+     - MongoDB query executes `SensorReading.find({ patientId }).sort({ timestamp: -1 }).limit(limit).select("timestamp value1 value2 -_id").lean()` ensuring index-backed execution without scanning unbounded collections.
+     - Documented Chronological Strategy (Approach B): The API queries newest N readings in descending order, then reverses the slice into chronological order (`oldest -> newest`, left-to-right) specifically tailored for charting.
+     - Output payload shape: strictly limited to `{ success: true, data: { readings: [{ timestamp, value1, value2 }], limit } }`. Excludes passwords, hashes, tokens, secrets, or unrelated patient records.
+  3. API Route & Security Authorization:
+     - Mounted `GET /readings/:patientId/recent` in `src/routes/apiRoutes.js` guarded by `authenticate` and `requirePatientOwnership("patientId")`.
+     - Patient self-access permitted (`req.user.profileId === targetPatientId`); cross-access returns 403 Forbidden.
+     - Doctor access permitted only for currently assigned patients (`patient.doctorId === req.user.profileId`); unassigned/foreign patient queries return 403 Forbidden.
+     - Super Admin global inspection permitted.
+     - Query parameter spoofing (`?patientId=`, `?doctorId=`) strictly rejected in favor of verified route parameters and verified JWT claims.
+  4. Client-Side Sanitization & Bounded Time-Series Manager (`src/public/js/chartSanitizer.js`):
+     - Universal UMD module compatible with browser globals and Node.js CommonJS test suites.
+     - Strict Security Sanitizer (`sanitizeReading`): validates finite numeric `value1` and `value2`, rejects strings, NaN, Infinity, null, undefined, `<script>`, and pseudo-protocols. Validates ISO-parseable Date timestamps.
+     - Bounded Time-Series Engine (`ChartTimeSeriesManager`): maintains a hard-capped 50-point rolling window (`maxPoints = 50`), auto-shifts oldest points on overflow, enforces duplicate event detection (via readingId / composite timestamp+values), and handles out-of-order packets via chronological binary/linear insertion.
+  5. Chart.js Library Integration (`src/public/js/chart.min.js`):
+     - Self-contained, production-grade Chart.js 4.4.7 UMD bundle stored locally in `src/public/js/chart.min.js`, ensuring 100% offline availability with zero external CDN dependencies.
+  6. Patient Overview Chart Integration (`src/views/patient/overview.ejs` & `src/public/js/patientCharts.js`):
+     - Embedded responsive line chart section into Patient Overview with custom dark theme (Surface `#1A1815`, Vanilla `#FFF4D6` Heart Rate spline, Burnt Orange `#FC6C26` SpO₂ spline, translucent fills, subtle gridlines).
+     - Clean state lifecycle: displays `#chartLoading`, `#chartEmpty`, and `#chartError` overlays without broken DOM rendering.
+     - Live Socket.IO telemetry: listens on authenticated `sensor-reading` channel, appends verified points in real-time, shifts oldest points, updates chart smoothly without full page refresh.
+  7. Doctor Caseload History Chart Integration (`src/views/doctor/history.ejs` & `src/public/js/doctorCharts.js`):
+     - Integrated clinical telemetry chart into Doctor History page.
+     - Dynamic Patient Switching: switching patients from `#patientFilter` dropdown safely destroys existing Chart.js instances, resets manager buffers, shows loading state, fetches newly selected patient's recent telemetry, and re-subscribes to patient-specific Socket.IO room (`join-room`).
+     - Strict client-side isolation: incoming telemetry packets belonging to other patients are immediately dropped; previous patient data never persists across patient switches.
+  8. Comprehensive Automated Verification Suite (`tests/chartVisualizationValidation.test.js`):
+     - Implemented 40 automated tests covering API availability, authentication, RBAC authorization, limit clamping, chronological ordering, payload safety, sanitization (NaN/Infinity/XSS rejection), Socket.IO live updates, window bounding, duplicate suppression, out-of-order handling, doctor isolation, patient switching, and historical telemetry data integrity.
+     - Added `npm run test:chart` script to `package.json` and integrated into master `npm test` pipeline.
+- **Reason:**
+  Empower patients and clinicians with immediate visual comprehension of biometric trends over time, combining historical baseline slices with smooth, real-time Socket.IO telemetry streaming while maintaining military-grade data isolation and input sanitization.
+- **Files Affected:**
+  - `package.json`
+  - `src/controllers/readingController.js`
+  - `src/routes/apiRoutes.js`
+  - `src/public/js/chart.min.js`
+  - `src/public/js/chartSanitizer.js`
+  - `src/public/js/patientCharts.js`
+  - `src/public/js/doctorCharts.js`
+  - `src/views/patient/overview.ejs`
+  - `src/views/doctor/history.ejs`
+  - `tests/chartVisualizationValidation.test.js`
+
 ### 2026-10-02 — Phase 10: Reading History Engine & Paginated API
 - **Phase / Task:** PHASE 10 (`TASK-10.1`, `TASK-10.2`)
 - **Change:**

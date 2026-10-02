@@ -82,6 +82,48 @@
                 </article>
             </section>
 
+            <!-- Phase 11: Real-Time & Historical Telemetry Chart -->
+            <section id="patientChartContainer" data-patient-id="<%= patient.patientId %>" style="margin-bottom: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <span class="eyebrow" style="color: var(--burnt-orange); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">BIOMETRIC TELEMETRY TIME-SERIES</span>
+                        <h2 style="font-size: 20px; font-weight: 700; margin: 4px 0 0; color: var(--text);">Heart Rate & Blood Oxygen Trends</h2>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <span id="chartSyncBadge" style="padding: 4px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted);">
+                            Connecting...
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Chart Canvas Container -->
+                <div style="position: relative; width: 100%; height: 320px;">
+                    <!-- Loading State -->
+                    <div id="chartLoading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 12px;">
+                        <div style="font-size: 28px; animation: pulse 1.5s infinite;">📈</div>
+                        <div style="font-size: 14px; font-weight: 600;">Loading telemetry...</div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="chartEmpty" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 12px;">
+                        <div style="font-size: 32px;">📊</div>
+                        <div style="font-size: 15px; font-weight: 600; color: var(--text);">No telemetry data available yet.</div>
+                        <p style="font-size: 12px; color: var(--muted); margin: 0; max-width: 380px; text-align: center;">
+                            Real-time biometric points will populate the chart automatically when device transmissions arrive.
+                        </p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="chartError" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 10px;">
+                        <div style="font-size: 30px; color: #F87171;">⚠️</div>
+                        <div class="error-message" style="font-size: 14px; font-weight: 600; color: #F87171;">Unable to load telemetry history.</div>
+                    </div>
+
+                    <!-- Interactive Chart Canvas -->
+                    <canvas id="patientTelemetryChart" style="display: none; width: 100%; height: 100%;"></canvas>
+                </div>
+            </section>
+
             <!-- Navigation Shortcuts -->
             <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
@@ -106,5 +148,11 @@
             </section>
         </main>
     </div>
+
+    <!-- Phase 11 Chart Visualization Scripts -->
+    <script src="/js/chart.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/chartSanitizer.js"></script>
+    <script src="/js/patientCharts.js"></script>
 </body>
 </html>

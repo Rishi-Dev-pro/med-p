@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 37 |
+| **Tasks Completed** | 39 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 9 |
-| **Overall Completion** | 80.4% |
+| **Tasks Not Started** | 7 |
+| **Overall Completion** | 84.8% |
 
 ---
 
@@ -178,8 +178,8 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-11.1` | Implement recent readings endpoint for chart hydration (`GET /api/readings/:patientId/recent?limit=50`) | `NOT_STARTED` | Phase 10 | `src/controllers/readingController.js` | None (Not yet executed) | - | Initial state fetch for visualizers |
-| `TASK-11.2` | Integrate Chart.js visualizer with initial MongoDB hydration and live Socket.IO `sensor-reading` point appending | `NOT_STARTED` | `TASK-11.1` | `src/public/js/patientCharts.js`, `src/public/js/doctorCharts.js`, `src/views/patient/overview.ejs` | None (Not yet executed) | - | Smooth real-time line charts |
+| `TASK-11.1` | Implement recent readings endpoint for chart hydration (`GET /api/readings/:patientId/recent?limit=50`) | `DONE` | Phase 10 | `src/controllers/readingController.js`, `src/routes/apiRoutes.js` | `node tests/chartVisualizationValidation.test.js` (Tests 1-15, 34-36, 38-39 PASS) | 2026-10-02 | Bounded limit (default 50, max 100), chronological order (Approach B: oldest to newest), strict RBAC ownership |
+| `TASK-11.2` | Integrate Chart.js visualizer with initial MongoDB hydration and live Socket.IO `sensor-reading` point appending | `DONE` | `TASK-11.1` | `src/public/js/chart.min.js`, `src/public/js/chartSanitizer.js`, `src/public/js/patientCharts.js`, `src/public/js/doctorCharts.js`, `src/views/patient/overview.ejs`, `src/views/doctor/history.ejs` | `node tests/chartVisualizationValidation.test.js` (Tests 16-33, 37, 40 PASS) | 2026-10-02 | Modular Chart.js UMD bundle, security sanitization, duplicate protection, out-of-order handling, 50-point rolling window, doctor patient switching isolation |
 
 ---
 
