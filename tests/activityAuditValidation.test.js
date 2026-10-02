@@ -136,6 +136,7 @@ async function request(endpoint, options = {}) {
 
 // Test Tokens
 let adminToken;
+let adminUser;
 let doctorToken;
 let patientToken;
 
@@ -176,7 +177,7 @@ async function setup() {
     // Seed test users
     const pwdHash = await hashPassword("Password123!");
 
-    const adminUser = await User.create({
+    adminUser = await User.create({
         username: "admin_tester",
         email: "admin_tester@test.com",
         passwordHash: pwdHash,
@@ -570,8 +571,10 @@ async function runAllTests() {
         assert(log, "DOCTOR_CREATED audit log must exist");
         assert(log.actorRole === ROLES.SUPER_ADMIN, "Actor role must be SUPER_ADMIN");
 
+        const generatedPassword = res.data && res.data.credentials ? res.data.credentials.initialPassword : null;
+        assert(generatedPassword, "Credentials must contain initialPassword");
         const logStr = JSON.stringify(log);
-        assert(!logStr.includes(res.data.credentials.temporaryPassword), "Temporary password must never appear in ActivityLog");
+        assert(!logStr.includes(generatedPassword), "Initial password must never appear in ActivityLog");
     });
 
     await runTest(22, "DOCTOR_ACTIVATED logged on doctor activation", async () => {
@@ -848,12 +851,12 @@ async function runAllTests() {
     });
 
     await runTest(39, "Actor filtering works (?actorId=...)", async () => {
-        const res = await request("/api/admin/activity?actorId=admin_tester", {
+        const res = await request(`/api/admin/activity?actorId=${adminUser._id.toString()}`, {
             headers: { Cookie: `token=${adminToken}` }
         });
         assert(res.status === 200, "Should return 200");
-        assert(res.data.activities.length > 0, "Should find activities by admin_tester");
-        const allMatch = res.data.activities.every(a => a.actorId === "admin_tester");
+        assert(res.data.activities.length > 0, "Should find activities by admin user ID");
+        const allMatch = res.data.activities.every(a => a.actorId === adminUser._id.toString());
         assert(allMatch, "All returned activities must match the actorId filter");
     });
 

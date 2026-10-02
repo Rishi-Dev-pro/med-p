@@ -234,6 +234,9 @@ const getActivity = async (req, res) => {
             if (endDate) {
                 const eDate = new Date(endDate);
                 if (!isNaN(eDate.getTime())) {
+                    if (typeof endDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(endDate.trim())) {
+                        eDate.setUTCHours(23, 59, 59, 999);
+                    }
                     filter.timestamp.$lte = eDate;
                 }
             }

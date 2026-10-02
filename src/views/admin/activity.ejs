@@ -225,6 +225,16 @@
             return "actor-pill-system";
         }
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         socket.on("connect", function() {
             console.log("[AuditStream] Socket connected to real-time activity feed:", socket.id);
         });
@@ -238,7 +248,7 @@
             const actorFilter = urlParams.get("actorId");
 
             if (actionFilter && actionFilter !== evt.action) return;
-            if (actorFilter && evt.actorId && !evt.actorId.toLowerCase().includes(actorFilter.toLowerCase())) return;
+            if (actorFilter && (!evt.actorId || !evt.actorId.toLowerCase().includes(actorFilter.toLowerCase()))) return;
 
             if (emptyState) emptyState.style.display = "none";
             if (tableWrap) tableWrap.style.display = "";
@@ -251,8 +261,8 @@
             let detailsHtml = '<span class="metric-sub">—</span>';
             if (evt.details && Object.keys(evt.details).length > 0) {
                 const pills = Object.entries(evt.details).map(([k, v]) => {
-                    const displayVal = typeof v === 'object' ? JSON.stringify(v) : v;
-                    return `<span class="detail-pill"><strong>${k}:</strong> ${displayVal}</span>`;
+                    const displayVal = typeof v === 'object' ? JSON.stringify(v) : String(v);
+                    return `<span class="detail-pill"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(displayVal)}</span>`;
                 }).join(" ");
                 detailsHtml = `<div class="details-summary">${pills}</div>`;
             }
@@ -262,16 +272,16 @@
             const actorClass = getActorPillClass(evt.actorRole);
 
             row.innerHTML = `
-                <td style="white-space: nowrap; font-size: 12px; color: var(--muted);">${formattedTime}</td>
-                <td><span class="action-badge ${actionClass}">${evt.action}</span></td>
+                <td style="white-space: nowrap; font-size: 12px; color: var(--muted);">${escapeHtml(formattedTime)}</td>
+                <td><span class="action-badge ${actionClass}">${escapeHtml(evt.action)}</span></td>
                 <td>
-                    <span class="actor-pill ${actorClass}">${evt.actorRole || "SYSTEM"}</span>
-                    ${evt.actorId ? `<span class="id-cell" style="margin-left: 4px;">${evt.actorId}</span>` : ''}
+                    <span class="actor-pill ${actorClass}">${escapeHtml(evt.actorRole || "SYSTEM")}</span>
+                    ${evt.actorId ? `<span class="id-cell" style="margin-left: 4px;">${escapeHtml(evt.actorId)}</span>` : ''}
                 </td>
                 <td>
                     <span class="target-badge">
-                        <span class="target-type-label">${evt.targetType || "ENTITY"}</span>
-                        ${evt.targetId ? `<span class="id-cell" style="color: var(--vanilla);">${evt.targetId}</span>` : '<span class="metric-sub">—</span>'}
+                        <span class="target-type-label">${escapeHtml(evt.targetType || "ENTITY")}</span>
+                        ${evt.targetId ? `<span class="id-cell" style="color: var(--vanilla);">${escapeHtml(evt.targetId)}</span>` : '<span class="metric-sub">—</span>'}
                     </span>
                 </td>
                 <td>${detailsHtml}</td>

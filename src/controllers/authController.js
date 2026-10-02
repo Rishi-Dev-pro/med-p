@@ -351,7 +351,7 @@ const login = async (req, res) => {
                     await logActivity(
                         AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
                         ACTOR_ROLES.DOCTOR,
-                        user.profileId,
+                        user._id.toString(),
                         TARGET_TYPES.DOCTOR,
                         user.profileId,
                         {
@@ -404,7 +404,7 @@ const login = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.AUTH_LOGIN_SUCCESS,
                 user.role,
-                user.profileId || user._id.toString(),
+                user._id.toString(),
                 TARGET_TYPES.USER,
                 user._id.toString(),
                 {
@@ -471,9 +471,9 @@ const logout = async (req, res) => {
                 await logActivity(
                     AUDIT_ACTIONS.AUTH_LOGOUT,
                     authUser.role || ACTOR_ROLES.UNKNOWN,
-                    authUser.profileId || authUser.userId || authUser.id,
+                    authUser.userId || authUser.id || authUser._id || null,
                     TARGET_TYPES.USER,
-                    authUser.userId || authUser.id || null,
+                    authUser.userId || authUser.id || authUser._id || null,
                     {
                         role: authUser.role,
                         profileId: authUser.profileId

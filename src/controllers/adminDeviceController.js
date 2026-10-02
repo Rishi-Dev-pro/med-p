@@ -148,7 +148,7 @@ const createDevice = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DEVICE_CREATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DEVICE,
                 cleanDeviceId,
                 {
@@ -299,7 +299,7 @@ const activateDevice = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DEVICE_ACTIVATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DEVICE,
                 cleanDeviceId,
                 {
@@ -359,7 +359,7 @@ const deactivateDevice = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DEVICE_DEACTIVATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DEVICE,
                 cleanDeviceId,
                 {
@@ -444,7 +444,7 @@ const resetDevice = async (req, res) => {
                 await logActivity(
                     AUDIT_ACTIONS.DEVICE_RESET,
                     ACTOR_ROLES.SUPER_ADMIN,
-                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                     TARGET_TYPES.DEVICE,
                     cleanDeviceId,
                     {
@@ -508,7 +508,7 @@ const resetDevice = async (req, res) => {
                 await logActivity(
                     AUDIT_ACTIONS.DEVICE_RESET,
                     ACTOR_ROLES.SUPER_ADMIN,
-                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                     TARGET_TYPES.DEVICE,
                     cleanDeviceId,
                     {
@@ -581,7 +581,7 @@ const deleteDevice = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DEVICE_DELETED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DEVICE,
                 cleanDeviceId,
                 {
@@ -691,7 +691,7 @@ const assignDevice = async (req, res) => {
                 await logActivity(
                     AUDIT_ACTIONS.DEVICE_ASSIGNED,
                     ACTOR_ROLES.SUPER_ADMIN,
-                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                     TARGET_TYPES.DEVICE,
                     cleanDeviceId,
                     {
@@ -738,7 +738,7 @@ const assignDevice = async (req, res) => {
                 await logActivity(
                     AUDIT_ACTIONS.DEVICE_ASSIGNED,
                     ACTOR_ROLES.SUPER_ADMIN,
-                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                     TARGET_TYPES.DEVICE,
                     cleanDeviceId,
                     {

@@ -46,7 +46,7 @@
      - Patients and doctors are restricted to their own rooms and cannot receive admin audit feeds.
   7. Comprehensive Automated Verification Suite (`tests/activityAuditValidation.test.js`):
      - Created 42 automated tests validating schema constraints, index declarations, logger sanitization, controller instrumentation, API authorization, pagination, filtering, immutability, and Socket.IO room isolation.
-     - Baseline regression: verified 438/438 tests passing across all 14 test suites (Phases 0–13). Zero regressions.
+     - Baseline regression: verified 428/428 tests passing across all 14 test suites (Phases 0–13). Zero regressions.
 
 ### 2026-10-02 — Phase 12: Device Monitoring & Telemetry Health Dashboard
 - **Phase / Task:** PHASE 12 (`TASK-12.1`, `TASK-12.2`)

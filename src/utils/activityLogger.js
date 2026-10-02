@@ -178,7 +178,7 @@ async function logActivity(
     // Strictly after successful persistence; never emit on failure
     try {
         const activeIo = io || _ioInstance;
-        if (activeIo) {
+        if (activeIo && !session) {
             const broadcastPayload = {
                 _id: createdRecord._id.toString(),
                 action: createdRecord.action,
@@ -190,9 +190,8 @@ async function logActivity(
                 timestamp: createdRecord.timestamp.toISOString()
             };
 
-            // Emit to authorized super admin rooms
-            activeIo.to("admin:activity").emit("admin-activity", broadcastPayload);
-            activeIo.to("admin:telemetry").emit("admin-activity", broadcastPayload);
+            // Emit once to authorized super admin rooms together
+            activeIo.to("admin:activity").to("admin:telemetry").emit("admin-activity", broadcastPayload);
         }
     } catch (socketErr) {
         console.warn("[ActivityLogger] Socket.IO broadcast warning:", socketErr.message);

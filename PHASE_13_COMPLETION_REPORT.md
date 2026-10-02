@@ -32,7 +32,7 @@ All requirements of Phase 13 ("Centralized System Activity & Audit Trail") have 
 - [x] **Task 13.13 — Security Review:** Confirmed zero secret leakage across all logging mechanisms through automated tests and static regex scans.
 - [x] **Task 13.14 — Audit Coverage Matrix:** Implemented end-to-end tests covering all mandatory action lifecycle states.
 - [x] **Task 13.15 — Real-Time Testing:** Automated multi-client Socket.IO test verifying Super Admin event reception and doctor/patient isolation.
-- [x] **Task 13.16 — Regression Testing:** Verified 438/438 tests passing across all 14 test suites with 0 failures.
+- [x] **Task 13.16 — Regression Testing:** Verified 428/428 tests passing across all 14 test suites with 0 failures.
 - [x] **Task 13.17 — Database Safety:** Used isolated test database (`health_monitoring_phase13_test`) preventing corruption of development databases.
 - [x] **Task 13.18 — Performance:** Verified paginated indexed queries prevent memory exhaustion.
 - [x] **Task 13.19 — Documentation:** Updated `HEALTH_TRACKER_TASK_TRACKER.md`, `HEALTH_TRACKER_PROGRESS.md`, and `HEALTH_TRACKER_CHANGELOG.md`.
@@ -128,7 +128,7 @@ All requirements of Phase 13 ("Centralized System Activity & Audit Trail") have 
 ---
 
 ### 11. FULL REGRESSION COUNT
-- **Full Test Suite (`npm test`):** **438 / 438 PASSING (100%)** across 14 test suites:
+- **Full Test Suite (`npm test`):** **428 / 428 PASSING (100%)** across 14 test suites:
   1. `tests/schemaValidation.test.js` (Phase 0): 18 / 18 PASS
   2. `tests/iotSimulator.test.js` (Phase 1): 15 / 15 PASS
   3. `tests/authValidation.test.js` (Phase 2): 20 / 20 PASS

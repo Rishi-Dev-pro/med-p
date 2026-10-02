@@ -302,7 +302,7 @@ const createDoctor = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DOCTOR_CREATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DOCTOR,
                 finalDoctorId,
                 {
@@ -483,7 +483,7 @@ const activateDoctor = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DOCTOR_ACTIVATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DOCTOR,
                 cleanDoctorId,
                 {
@@ -564,7 +564,7 @@ const deactivateDoctor = async (req, res) => {
                     await logActivity(
                         AUDIT_ACTIONS.PATIENT_UNASSIGNED,
                         ACTOR_ROLES.SUPER_ADMIN,
-                        req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                        req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                         TARGET_TYPES.PATIENT,
                         pat.patientId,
                         {
@@ -602,7 +602,7 @@ const deactivateDoctor = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DOCTOR_DEACTIVATED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DOCTOR,
                 cleanDoctorId,
                 {
@@ -684,7 +684,7 @@ const deleteDoctor = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.DOCTOR_REMOVED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user.username || req.user.userId || "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.DOCTOR,
                 cleanDoctorId,
                 {

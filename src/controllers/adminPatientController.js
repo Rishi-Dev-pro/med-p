@@ -203,7 +203,7 @@ const assignDoctor = async (req, res) => {
             await logActivity(
                 auditAction,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.PATIENT,
                 cleanPatientId,
                 {
@@ -299,7 +299,7 @@ const unassignDoctor = async (req, res) => {
             await logActivity(
                 AUDIT_ACTIONS.PATIENT_UNASSIGNED,
                 ACTOR_ROLES.SUPER_ADMIN,
-                req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                req.user ? (req.user.userId || req.user._id || req.user.id) : null,
                 TARGET_TYPES.PATIENT,
                 cleanPatientId,
                 {
