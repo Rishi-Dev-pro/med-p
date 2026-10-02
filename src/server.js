@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { validateEnv } = require("./config/envValidator");
 const { isOriginAllowed } = require("./config/security");
 
