@@ -26,6 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let chartInstance = null;
     let currentPatientId = null;
     let socket = null;
+    let selectionRequestId = 0;
+    let isSwitchingPatient = false;
+    let pendingDoctorReadings = [];
 
     function showState(state, message) {
         if (loadingEl) loadingEl.style.display = state === "loading" ? "flex" : "none";
@@ -208,21 +211,26 @@ document.addEventListener("DOMContentLoaded", () => {
      * and subscribes to authorized Socket.IO stream.
      */
     async function switchPatient(patientId) {
+        const requestId = ++selectionRequestId;
+
         // Step 1: Safely destroy previous chart and flush old patient data
         destroyChart();
         manager.reset();
         currentPatientId = patientId ? patientId.trim() : null;
+        pendingDoctorReadings = [];
 
         if (activePatientLabel) {
             activePatientLabel.textContent = currentPatientId ? `Monitoring: ${currentPatientId}` : "No Patient Selected";
         }
 
         if (!currentPatientId) {
+            isSwitchingPatient = false;
             showState("prompt");
             return;
         }
 
         // Step 2: Show loading state
+        isSwitchingPatient = true;
         showState("loading");
 
         // Step 3: Request socket room subscription for new patient
@@ -239,7 +247,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: { "Accept": "application/json" }
             });
 
+            // Discard superseded responses immediately
+            if (requestId !== selectionRequestId) {
+                return;
+            }
+
             if (!response.ok) {
+                isSwitchingPatient = false;
+                pendingDoctorReadings = [];
                 if (response.status === 403) {
                     showState("error", "Access denied: Patient is not assigned to your clinical care");
                     return;
@@ -253,13 +268,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const json = await response.json();
 
-            // Guard against race conditions if user switched patient while request was in-flight
-            if (currentPatientId !== patientId) {
+            // Discard superseded responses immediately
+            if (requestId !== selectionRequestId) {
                 return;
             }
 
             const rawReadings = (json.data && json.data.readings) ? json.data.readings : [];
             manager.loadInitial(rawReadings);
+
+            // Replay any live telemetry buffered for this patient while fetch was in-flight
+            isSwitchingPatient = false;
+            for (const pending of pendingDoctorReadings) {
+                manager.addReading(pending);
+            }
+            pendingDoctorReadings = [];
 
             if (manager.getCount() === 0) {
                 showState("empty");
@@ -268,6 +290,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderChart();
             }
         } catch (err) {
+            if (requestId !== selectionRequestId) {
+                return;
+            }
+            isSwitchingPatient = false;
+            pendingDoctorReadings = [];
             console.error("Failed to load patient recent telemetry:", err);
             showState("error", "Unable to load telemetry history.");
         }
@@ -321,6 +348,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Strict client-side isolation: ONLY process telemetry for the currently selected patient
             if (!currentPatientId || data.patientId !== currentPatientId) {
+                return;
+            }
+
+            if (isSwitchingPatient) {
+                pendingDoctorReadings.push(data);
                 return;
             }
 

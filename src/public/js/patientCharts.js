@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialize 50-point bounded time-series manager
     const manager = new window.ChartSanitizer.ChartTimeSeriesManager(50);
     let chartInstance = null;
+    let isInitialLoading = true;
+    let pendingReadings = [];
 
     function showState(state, message) {
         if (loadingEl) loadingEl.style.display = state === "loading" ? "flex" : "none";
@@ -210,12 +212,16 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     async function loadRecentReadings() {
         showState("loading");
+        isInitialLoading = true;
+        pendingReadings = [];
         try {
             const response = await fetch(`/api/readings/${encodeURIComponent(patientId)}/recent?limit=50`, {
                 headers: { "Accept": "application/json" }
             });
 
             if (!response.ok) {
+                isInitialLoading = false;
+                pendingReadings = [];
                 if (response.status === 401 || response.status === 403) {
                     showState("error", "Access denied: Unauthorized to view telemetry");
                     return;
@@ -228,6 +234,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             manager.loadInitial(rawReadings);
 
+            // Replay any live readings buffered during initial HTTP load
+            isInitialLoading = false;
+            for (const pending of pendingReadings) {
+                manager.addReading(pending);
+            }
+            pendingReadings = [];
+
             if (manager.getCount() === 0) {
                 showState("empty");
             } else {
@@ -235,6 +248,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 renderChart();
             }
         } catch (err) {
+            isInitialLoading = false;
+            pendingReadings = [];
             console.error("Failed to load historical telemetry:", err);
             showState("error", "Unable to load telemetry history.");
         }
@@ -280,6 +295,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Strict client-side check: only process telemetry matching this patient
             if (data.patientId && data.patientId !== patientId) {
+                return;
+            }
+
+            if (isInitialLoading) {
+                pendingReadings.push(data);
                 return;
             }
 

@@ -141,6 +141,16 @@
                 return null;
             }
 
+            const newTime = new Date(sanitized.timestamp).getTime();
+
+            // When window is full, reject reading if older than the oldest stored point before recording key
+            if (
+                this.readings.length >= this.maxPoints &&
+                newTime < new Date(this.readings[0].timestamp).getTime()
+            ) {
+                return null;
+            }
+
             const key = this._makeKey(sanitized);
             if (this.seenKeys.has(key)) {
                 return null; // Duplicate safely ignored
@@ -148,7 +158,6 @@
 
             this.seenKeys.add(key);
 
-            const newTime = new Date(sanitized.timestamp).getTime();
             let insertIndex = this.readings.length;
 
             // Handle potential out-of-order readings: insert in strict timestamp order

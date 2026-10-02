@@ -719,6 +719,15 @@ async function runAllTests() {
         // Since 55 points were added (0..54), the 5 oldest (0..4) should have been shifted out
         assert(points[0].value1 === 5, `Expected oldest remaining point to be 5, got ${points[0].value1}`);
         assert(points[points.length - 1].value1 === 54, `Expected newest point to be 54, got ${points[points.length - 1].value1}`);
+
+        // When window is full, reading older than oldest stored point must be rejected before seenKeys
+        const rejectedOld = manager.addReading({
+            value1: 999,
+            value2: 95,
+            timestamp: new Date(base - 100000).toISOString()
+        });
+        assert(rejectedOld === null, "Reading older than oldest point in full window must be rejected");
+        assert(manager.getPoints()[0].value1 === 5, "Oldest point must remain unchanged");
     });
 
     await runTest(32, "Duplicate reading does not create duplicate point", async () => {

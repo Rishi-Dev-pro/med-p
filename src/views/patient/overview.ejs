@@ -52,7 +52,7 @@
                 <article class="metric-card" style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
                     <span class="metric-label" style="font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">HEART RATE (VALUE 01)</span>
                     <div style="font-size: 38px; font-weight: 800; color: var(--text); margin: 12px 0 6px;">
-                        <%= latestReading ? latestReading.value1 : '--' %>
+                        <span id="chartLatestValue1"><%= latestReading ? latestReading.value1 : '--' %></span>
                         <span style="font-size: 16px; font-weight: 400; color: var(--muted);">bpm</span>
                     </div>
                     <span class="metric-state" style="font-size: 12px; color: var(--muted);">
@@ -63,7 +63,7 @@
                 <article class="metric-card" style="padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);">
                     <span class="metric-label" style="font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;">BLOOD OXYGEN (VALUE 02)</span>
                     <div style="font-size: 38px; font-weight: 800; color: var(--burnt-orange); margin: 12px 0 6px;">
-                        <%= latestReading ? latestReading.value2 : '--' %>
+                        <span id="chartLatestValue2"><%= latestReading ? latestReading.value2 : '--' %></span>
                         <span style="font-size: 16px; font-weight: 400; color: var(--muted);">%</span>
                     </div>
                     <span class="metric-state" style="font-size: 12px; color: var(--muted);">

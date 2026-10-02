@@ -209,7 +209,7 @@ When a doctor selects a different patient in `#patientFilter`:
 4. Emits `join-room` with `{ role: "doctor", patientId: newPatientId }` over Socket.IO.
 5. Issues GET request to `/api/readings/${newPatientId}/recent?limit=50`.
 6. Renders the newly selected patient's historical dataset.
-7. Ignores any residual in-flight packets belonging to previous patients.
+7. Telemetry packets are filtered client-side by currentPatientId (the client does not emit a leave-room command for previous rooms), and selection request tokens discard superseded responses.
 
 ---
 
