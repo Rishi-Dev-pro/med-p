@@ -5,6 +5,45 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 16: Final Prototype & Presentation Polish
+- **Phase / Task:** PHASE 16 (`TASK-16.1`, `TASK-16.2`)
+- **Change:**
+  1. Presentation Demo Seeder Script (`src/seed/demoSeed.js`, `package.json`):
+     - Implemented `runDemoSeed({ clean })` with strict multi-layer production safety checks: refuses execution if `NODE_ENV === "production"` or database name contains `"prod"`.
+     - Deterministically provisions:
+       - 1 Super Admin (`admin` / `Admin@12345`).
+       - 3 Clinical Doctors (`DOC-001` Cardiology, `DOC-002` Internal Medicine, `DOC-003` Pulmonology).
+       - 3 Patients (`PAT-001`, `PAT-002`, `PAT-003`) with doctor and device associations.
+       - 4 Hardware Devices (`DEV-001` Online, `DEV-002` Stale, `DEV-003` Offline, `DEV-004` Inactive) with cryptographically secure API keys.
+       - 60 Synthetic Sensor Readings spanning realistic historical sinusoidal curves for `value1` and `value2`.
+       - 5 Baseline System Audit Trail Entries.
+     - Registered `npm run seed:demo` script.
+  2. Secure Super Admin Quick-Switch / View Mode (`src/controllers/adminController.js`, `src/routes/adminRoutes.js`):
+     - Implemented non-impersonating view mode endpoints:
+       - `GET /admin/view/patient/:patientId` (views patient dashboard context).
+       - `GET /admin/view/doctor/:doctorId` (views doctor dashboard context).
+       - `ALL /admin/view/exit` (exits view mode back to `/admin/overview`).
+     - Strictly disabled when `NODE_ENV === "production"` (returns HTTP 403 JSON or 404 HTML).
+     - Security Invariants:
+       - Admin identity remains strictly `SUPER_ADMIN`; no target user JWT is ever minted or issued.
+       - Target user's password hashes and private credentials are never exposed.
+       - Read-only simulation: viewing does not mutate patient or doctor database records.
+       - Quick-Switch transitions audited via `ADMIN_VIEW_SWITCH` and `ADMIN_VIEW_EXIT` ActivityLog events.
+  3. Real-Time Socket.IO View Mode Telemetry Subscription (`src/server.js`):
+     - Enhanced `join-room` Socket.IO handler to authorize Super Admin clients to observe target patient or doctor telemetry rooms while in view mode (`patient:<id>` or `doctor:<id>`).
+     - Normal RBAC room guards strictly preserved for regular patients and doctors (non-admins cannot join unauthorized rooms).
+  4. Shared Design System & UI Micro-Interactions (`src/public/css/global.css`, `src/views/admin/partials/adminViewBanner.ejs`):
+     - Centralized burnt-orange design tokens: background `#11100E`, surface `#1A1815`, vanilla `#FFF4D6`, accent `#FC6C26`.
+     - Reusable visual primitives: `.btn` variants, shimmer loading skeletons (`.skeleton`, `.skeleton-card`), and empty states (`.empty-state`).
+     - Persistent sticky Admin View Mode banner with target identity details and one-click "Return to Admin" action.
+     - Accessible `@media (prefers-reduced-motion: reduce)` overrides suppressing non-essential animations.
+     - Responsive tablet and mobile adjustments preventing horizontal layout overflow.
+  5. Presentation Validation & Regression Test Suite (`tests/phase16PresentationValidation.test.js`):
+     - Implemented 45 automated presentation and polish tests verifying demo seeding, Quick-Switch security, Socket observation, audit logging, empty states, skeletons, responsive tokens, and complete end-to-end demonstration flow.
+     - Verified end-to-end demo flow runs in **221ms** (well below the < 3000ms threshold).
+     - All 45/45 Phase 16 tests passing.
+     - Full regression verified: **548 / 548 total tests passing across 17 test suites**.
+
 ### 2026-10-02 — Phase 15: Security Hardening & Penetration Defense
 - **Phase / Task:** PHASE 15 (`TASK-15.1`, `TASK-15.2`)
 - **Change:**

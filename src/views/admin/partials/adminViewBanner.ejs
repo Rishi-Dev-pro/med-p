@@ -1,0 +1,24 @@
+<% if (typeof adminViewContext !== 'undefined' && adminViewContext) { %>
+<!-- ==========================================
+     SUPER ADMIN VIEW MODE PERSISTENT BANNER
+     ========================================== -->
+<div class="admin-view-banner" id="adminViewBanner" role="region" aria-label="Administrator View Mode">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <span class="admin-view-badge">
+            <span>🛡️</span>
+            <span>ADMIN VIEW MODE</span>
+        </span>
+        <div class="admin-view-info">
+            <span>Authenticated: <strong>Super Admin (<%= user.username %>)</strong></span>
+            <span>&bull;</span>
+            <span>Simulating View: <strong><%= adminViewContext.mode === 'PATIENT' ? 'Patient Portal' : 'Doctor Portal' %> — <%= adminViewContext.targetName %> (<%= adminViewContext.targetId %>)</strong></span>
+        </div>
+    </div>
+    <div>
+        <a href="/admin/overview" class="admin-view-exit-btn" id="exitAdminViewBtn" title="Return to Super Admin Portal">
+            <span>&larr;</span>
+            <span>Return to Admin</span>
+        </a>
+    </div>
+</div>
+<% } %>

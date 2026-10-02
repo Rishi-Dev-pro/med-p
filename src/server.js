@@ -175,9 +175,20 @@ function setupSocketIO(io) {
                 }
             }
 
-            // Case C: SUPER_ADMIN
+            // Case C: SUPER_ADMIN (Phase 16 Quick-Switch View Mode support)
             if (user.role === ROLES.SUPER_ADMIN) {
-                const roomName = requestedTarget ? `admin:${requestedTarget}` : "admin:telemetry";
+                let roomName = "admin:telemetry";
+                if (requestedTarget) {
+                    if (requestedTarget.startsWith("patient:") || requestedTarget.startsWith("doctor:") || requestedTarget.startsWith("admin:")) {
+                        roomName = requestedTarget;
+                    } else if (payload.viewMode === "PATIENT" || payload.patientId) {
+                        roomName = `patient:${requestedTarget}`;
+                    } else if (payload.viewMode === "DOCTOR" || payload.doctorId) {
+                        roomName = `doctor:${requestedTarget}`;
+                    } else {
+                        roomName = `admin:${requestedTarget}`;
+                    }
+                }
                 socket.join(roomName);
                 cb({ success: true, room: roomName });
                 return;

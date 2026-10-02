@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seed.js",
     "seed:admin": "node src/seed/seedAdmin.js",
+    "seed:demo": "node src/seed/demoSeed.js",
     "test:schema": "node tests/schemaValidation.test.js",
     "test:simulator": "node tests/iotSimulator.test.js",
     "test:auth": "node tests/authValidation.test.js",
@@ -24,7 +25,8 @@
     "test:activity": "node tests/activityAuditValidation.test.js",
     "test:robustness": "node tests/errorRobustnessValidation.test.js",
     "test:security": "node tests/securityHardeningValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health && npm run test:activity && npm run test:robustness && npm run test:security"
+    "test:presentation": "node tests/phase16PresentationValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health && npm run test:activity && npm run test:robustness && npm run test:security && npm run test:presentation"
   },
   "keywords": [],
   "author": "",

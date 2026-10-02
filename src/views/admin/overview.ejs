@@ -114,12 +114,16 @@
                             <tbody>
                                 <% recentPatients.forEach(p => { %>
                                     <tr>
-                                        <td class="id-cell"><%= p.patientId %></td>
-                                        <td><%= p.name %></td>
+                                        <td class="id-cell">
+                                            <a href="/admin/view/patient/<%= p.patientId %>" style="color: var(--burnt-orange); text-decoration: none; font-weight: 700;" title="Open in Admin View Mode">
+                                                <%= p.patientId %> 👁️
+                                            </a>
+                                        </td>
+                                        <td><strong><%= p.name %></strong></td>
                                         <td><%= p.email %></td>
                                         <td>
                                             <% if (p.doctorId) { %>
-                                                <span class="id-cell"><%= p.doctorId %></span>
+                                                <a href="/admin/view/doctor/<%= p.doctorId %>" class="id-cell" style="text-decoration: none; color: inherit;" title="Open Doctor in View Mode"><%= p.doctorId %></a>
                                             <% } else { %>
                                                 <span class="status-pill unassigned-pill">UNASSIGNED</span>
                                             <% } %>
@@ -168,8 +172,12 @@
                             <tbody>
                                 <% recentDoctors.forEach(d => { %>
                                     <tr>
-                                        <td class="id-cell"><%= d.doctorId %></td>
-                                        <td><%= d.name %></td>
+                                        <td class="id-cell">
+                                            <a href="/admin/view/doctor/<%= d.doctorId %>" style="color: var(--burnt-orange); text-decoration: none; font-weight: 700;" title="Open in Admin View Mode">
+                                                <%= d.doctorId %> 👁️
+                                            </a>
+                                        </td>
+                                        <td><strong><%= d.name %></strong></td>
                                         <td><%= d.email %></td>
                                         <td><%= d.specialty || "General Medicine" %></td>
                                         <td>

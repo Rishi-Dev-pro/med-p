@@ -478,4 +478,223 @@ h1 {
     100% {
         box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
     }
+}
+
+/* ==========================================================================
+   PHASE 16 SHARED DESIGN SYSTEM PRIMITIVES
+   ========================================================================== */
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-md, 16px);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    font-family: inherit;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background: var(--burnt-orange, #FC6C26);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(252, 108, 38, 0.3);
+}
+
+.btn-primary:hover {
+    background: #FF7B3D;
+    box-shadow: 0 6px 20px rgba(252, 108, 38, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--surface-light, #24211D);
+    color: var(--text, #FFF4D6);
+    border: 1px solid var(--border, rgba(255, 244, 214, 0.10));
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 244, 214, 0.08);
+    border-color: rgba(255, 244, 214, 0.2);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Skeletons */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 244, 214, 0.04) 25%,
+        rgba(255, 244, 214, 0.09) 37%,
+        rgba(255, 244, 214, 0.04) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeletonShimmer 1.4s ease infinite;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0 50%;
+    }
+}
+
+.skeleton-text {
+    height: 14px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.skeleton-card {
+    height: 140px;
+    width: 100%;
+    border-radius: var(--radius-md, 16px);
+}
+
+/* Empty States */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 24px;
+    background: rgba(255, 244, 214, 0.02);
+    border: 1px dashed rgba(255, 244, 214, 0.15);
+    border-radius: var(--radius-md, 16px);
+    margin: 16px 0;
+}
+
+.empty-state-icon {
+    font-size: 42px;
+    margin-bottom: 14px;
+    opacity: 0.85;
+}
+
+.empty-state h3,
+.empty-state-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text, #FFF4D6);
+    margin-bottom: 6px;
+}
+
+.empty-state p,
+.empty-state-desc {
+    font-size: 13px;
+    color: var(--muted, #A8A39A);
+    max-width: 420px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+}
+
+/* Admin Quick-Switch View Mode Banner */
+.admin-view-banner {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: linear-gradient(90deg, #1C150C 0%, #2A190C 50%, #1C150C 100%);
+    border-bottom: 2px solid var(--burnt-orange, #FC6C26);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+}
+
+.admin-view-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background: rgba(252, 108, 38, 0.2);
+    border: 1px solid var(--burnt-orange, #FC6C26);
+    border-radius: 6px;
+    color: var(--burnt-orange, #FC6C26);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-view-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text, #FFF4D6);
+}
+
+.admin-view-info strong {
+    color: #FFFFFF;
+}
+
+.admin-view-exit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(255, 244, 214, 0.08);
+    border: 1px solid rgba(255, 244, 214, 0.2);
+    border-radius: 8px;
+    color: var(--text, #FFF4D6);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.admin-view-exit-btn:hover {
+    background: var(--burnt-orange, #FC6C26);
+    color: #FFFFFF;
+    border-color: var(--burnt-orange, #FC6C26);
+    transform: translateY(-1px);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .skeleton {
+        animation: none !important;
+        background: rgba(255, 244, 214, 0.06) !important;
+    }
+    .health-badge-online .health-pulse-dot,
+    .health-badge-stale .health-pulse-dot {
+        animation: none !important;
+    }
 }

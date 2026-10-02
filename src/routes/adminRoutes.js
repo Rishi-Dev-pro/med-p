@@ -63,6 +63,11 @@ router.post("/devices/:deviceId/assign", authenticate, requireRole(ROLES.SUPER_A
 router.post("/devices/:deviceId/rotate-key", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.rotateDeviceApiKey);
 router.post("/devices/:deviceId/revoke-key", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.revokeDeviceApiKey);
 
+// Phase 16 Super Admin Quick-Switch / View Mode Endpoints
+router.get("/view/patient/:patientId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.viewPatient);
+router.get("/view/doctor/:doctorId", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.viewDoctor);
+router.all("/view/exit", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.exitViewMode);
+
 // Super Admin Logout (Supports GET and POST)
 router.all("/logout", adminController.logout);
 

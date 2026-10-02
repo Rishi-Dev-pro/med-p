@@ -157,6 +157,12 @@
                                         <td><%= doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "—" %></td>
                                         <td>
                                             <div class="action-btn-group">
+                                                <a href="/admin/view/doctor/<%= doc.doctorId %>" 
+                                                   class="btn-action view-doctor-btn" 
+                                                   title="View Doctor Dashboard in Admin View Mode"
+                                                   style="padding: 6px 10px; background: rgba(252, 108, 38, 0.15); color: var(--burnt-orange); border: 1px solid rgba(252, 108, 38, 0.3); border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <span>👁️</span> View
+                                                </a>
                                                 <% if (isDocActive) { %>
                                                     <button type="button" 
                                                             class="btn-action btn-deactivate" 

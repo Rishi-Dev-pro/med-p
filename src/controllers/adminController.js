@@ -351,6 +351,226 @@ const getStatus = (req, res) => {
     });
 };
 
+/**
+ * Super Admin Quick-Switch / View Mode: View Patient Dashboard
+ * GET /admin/view/patient/:patientId
+ * Read-only simulation context with persistent admin banner.
+ * Strictly forbidden in production (NODE_ENV === "production").
+ */
+const viewPatient = async (req, res) => {
+    if (process.env.NODE_ENV === "production") {
+        if (isApiRequest(req)) {
+            return res.status(403).json({ success: false, message: "Quick-Switch view mode is disabled in production." });
+        }
+        return res.status(404).render("error", {
+            errorTitle: "404 Not Found",
+            errorMessage: "The requested route does not exist."
+        });
+    }
+
+    try {
+        const { patientId } = req.params;
+        const patient = await Patient.findOne({ patientId }).lean();
+        if (!patient) {
+            if (isApiRequest(req)) {
+                return res.status(404).json({ success: false, message: "Patient target not found" });
+            }
+            return res.status(404).render("error", {
+                errorTitle: "Patient Not Found",
+                errorMessage: `No patient registered with identifier ${patientId}`
+            });
+        }
+
+        const device = patient.deviceId
+            ? await Device.findOne({ deviceId: patient.deviceId }).lean()
+            : null;
+
+        const doctor = patient.doctorId
+            ? await Doctor.findOne({ doctorId: patient.doctorId }).select("doctorId name specialization email phone").lean()
+            : null;
+
+        const latestReading = await SensorReading.findOne({ patientId: patient.patientId })
+            .sort({ timestamp: -1 })
+            .lean();
+
+        // Audit Quick-Switch entry
+        const { logActivity } = require("../utils/activityLogger");
+        await logActivity({
+            action: AUDIT_ACTIONS.ADMIN_VIEW_SWITCH,
+            actorRole: ACTOR_ROLES.SUPER_ADMIN,
+            actorId: req.user.username || "admin",
+            targetType: TARGET_TYPES.PATIENT,
+            targetId: patient.patientId,
+            details: { mode: "PATIENT", targetName: patient.name }
+        });
+
+        const adminViewContext = {
+            mode: "PATIENT",
+            targetId: patient.patientId,
+            targetName: patient.name
+        };
+
+        if (isApiRequest(req)) {
+            return res.status(200).json({
+                success: true,
+                adminViewContext,
+                authenticatedAdmin: {
+                    userId: req.user.userId,
+                    username: req.user.username,
+                    role: req.user.role
+                },
+                patient,
+                doctor,
+                device,
+                latestReading
+            });
+        }
+
+        return res.render("patient/overview", {
+            user: req.user,
+            patient,
+            doctor,
+            device,
+            latestReading,
+            activePage: "overview",
+            adminViewContext
+        });
+    } catch (error) {
+        console.error("Admin view patient error:", error.message);
+        if (isApiRequest(req)) return res.status(500).json({ success: false, message: "Failed to load patient view" });
+        return res.status(500).render("error", { errorTitle: "Server Error", errorMessage: "Failed to render patient view mode" });
+    }
+};
+
+/**
+ * Super Admin Quick-Switch / View Mode: View Doctor Dashboard
+ * GET /admin/view/doctor/:doctorId
+ * Read-only simulation context with persistent admin banner.
+ * Strictly forbidden in production (NODE_ENV === "production").
+ */
+const viewDoctor = async (req, res) => {
+    if (process.env.NODE_ENV === "production") {
+        if (isApiRequest(req)) {
+            return res.status(403).json({ success: false, message: "Quick-Switch view mode is disabled in production." });
+        }
+        return res.status(404).render("error", {
+            errorTitle: "404 Not Found",
+            errorMessage: "The requested route does not exist."
+        });
+    }
+
+    try {
+        const { doctorId } = req.params;
+        const doctor = await Doctor.findOne({ doctorId }).lean();
+        if (!doctor) {
+            if (isApiRequest(req)) {
+                return res.status(404).json({ success: false, message: "Doctor target not found" });
+            }
+            return res.status(404).render("error", {
+                errorTitle: "Doctor Not Found",
+                errorMessage: `No doctor provisioned with identifier ${doctorId}`
+            });
+        }
+
+        // Hydrate only doctor's assigned patients
+        const patients = await Patient.find({ doctorId: doctor.doctorId })
+            .select("patientId name age gender deviceId")
+            .sort({ patientId: 1 })
+            .lean();
+
+        const activeDevicesCount = patients.filter((p) => Boolean(p.deviceId)).length;
+        const assignedPatientIds = patients.map((p) => p.patientId);
+
+        let latestReadings = [];
+        if (assignedPatientIds.length > 0) {
+            latestReadings = await SensorReading.find({ patientId: { $in: assignedPatientIds } })
+                .sort({ timestamp: -1 })
+                .limit(5)
+                .lean();
+        }
+
+        const metrics = {
+            totalPatients: patients.length,
+            activeDevices: activeDevicesCount,
+            recentTelemetryCount: latestReadings.length
+        };
+
+        // Audit Quick-Switch entry
+        const { logActivity } = require("../utils/activityLogger");
+        await logActivity({
+            action: AUDIT_ACTIONS.ADMIN_VIEW_SWITCH,
+            actorRole: ACTOR_ROLES.SUPER_ADMIN,
+            actorId: req.user.username || "admin",
+            targetType: TARGET_TYPES.DOCTOR,
+            targetId: doctor.doctorId,
+            details: { mode: "DOCTOR", targetName: doctor.name }
+        });
+
+        const adminViewContext = {
+            mode: "DOCTOR",
+            targetId: doctor.doctorId,
+            targetName: doctor.name
+        };
+
+        if (isApiRequest(req)) {
+            return res.status(200).json({
+                success: true,
+                adminViewContext,
+                authenticatedAdmin: {
+                    userId: req.user.userId,
+                    username: req.user.username,
+                    role: req.user.role
+                },
+                doctor,
+                metrics,
+                patients,
+                latestReadings
+            });
+        }
+
+        return res.render("doctor/overview", {
+            user: req.user,
+            doctor,
+            metrics,
+            patients,
+            latestReadings,
+            activePage: "overview",
+            adminViewContext
+        });
+    } catch (error) {
+        console.error("Admin view doctor error:", error.message);
+        if (isApiRequest(req)) return res.status(500).json({ success: false, message: "Failed to load doctor view" });
+        return res.status(500).render("error", { errorTitle: "Server Error", errorMessage: "Failed to render doctor view mode" });
+    }
+};
+
+/**
+ * Super Admin Quick-Switch Exit endpoint
+ * POST /admin/view/exit
+ * Logs audit event and returns navigation URL back to admin overview
+ */
+const exitViewMode = async (req, res) => {
+    try {
+        const { logActivity } = require("../utils/activityLogger");
+        await logActivity({
+            action: AUDIT_ACTIONS.ADMIN_VIEW_EXIT,
+            actorRole: ACTOR_ROLES.SUPER_ADMIN,
+            actorId: req.user.username || "admin",
+            targetType: TARGET_TYPES.SYSTEM,
+            targetId: "ADMIN_OVERVIEW",
+            details: { exitedAt: new Date().toISOString() }
+        });
+
+        if (isApiRequest(req)) {
+            return res.status(200).json({ success: true, redirectUrl: "/admin/overview" });
+        }
+        return res.redirect("/admin/overview");
+    } catch (error) {
+        console.error("Admin exit view error:", error.message);
+        return res.redirect("/admin/overview");
+    }
+};
+
 module.exports = {
     getOverview,
     getDoctors,
@@ -358,5 +578,8 @@ module.exports = {
     getDevices,
     getActivity,
     logout,
-    getStatus
+    getStatus,
+    viewPatient,
+    viewDoctor,
+    exitViewMode
 };
