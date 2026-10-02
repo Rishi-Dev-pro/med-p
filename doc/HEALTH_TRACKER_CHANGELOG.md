@@ -5,6 +5,49 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 13: Centralized System Activity & Audit Trail
+- **Phase / Task:** PHASE 13 (`TASK-13.1`, `TASK-13.2`, `TASK-13.3`)
+- **Change:**
+  1. Centralized Audit Constants & Schema Optimization (`src/config/constants.js`, `src/models/ActivityLog.js`):
+     - Added `UNKNOWN: "UNKNOWN"` to `ACTOR_ROLES` for unauthenticated actors (e.g., failed logins with nonexistent accounts).
+     - Standardized audit actions: `AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILED`, `AUTH_LOGOUT`, `SUPER_ADMIN_CREATED`, while preserving all existing actions (`DOCTOR_CREATED`, `DOCTOR_ACTIVATED`, `DOCTOR_DEACTIVATED`, `DOCTOR_REMOVED`, `PATIENT_ASSIGNED`, `PATIENT_REASSIGNED`, `PATIENT_UNASSIGNED`, `DEVICE_CREATED`, `DEVICE_ACTIVATED`, `DEVICE_DEACTIVATED`, `DEVICE_RESET`, `DEVICE_DELETED`, `PATIENT_REGISTERED`, `DEVICE_ASSIGNED`).
+     - Optimized `ActivityLog` schema with explicit covered indexes:
+       - `{ timestamp: -1 }` (newest-first audit streaming)
+       - `{ actorId: 1 }` (actor filtering)
+       - `{ actorId: 1, timestamp: -1 }` (actor chronological compound index)
+       - `{ targetId: 1, timestamp: -1 }` (resource history compound index)
+     - Preserved append-only design, server-generated timestamps, and nullable `actorId` for system/unknown actors.
+  2. Centralized Activity Logger & Recursive Credential Sanitizer (`src/utils/activityLogger.js`):
+     - Implemented `logActivity(action, actorRole, actorId, targetType, targetId, details)` supporting positional parameters or config object.
+     - Enforces server-authoritative actor context (never trusts client-supplied identity).
+     - Built-in recursive credential sanitizer (`sanitizeDetails`) that strips passwords, password hashes, JWTs, cookies, bearer tokens, API keys, and server secrets matching `/password|hash|token|jwt|cookie|secret|apikey|api_key|authorization|bearer/i`.
+     - Non-blocking persistence pattern: errors are logged to stderr without crashing the caller process.
+     - Real-Time Socket.IO push: emits `admin-activity` to `admin:activity` room strictly AFTER successful MongoDB write (zero ghost events).
+  3. Server-Wide Controller Audit Instrumentation:
+     - `src/controllers/authController.js`: Instruments `AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILED` (with safe diagnostic details, no credentials stored), `PATIENT_REGISTERED` & `DEVICE_ASSIGNED`, and `AUTH_LOGOUT`.
+     - `src/controllers/adminDoctorController.js`: Instruments `DOCTOR_CREATED` (no plaintext passwords logged), `DOCTOR_ACTIVATED`, `DOCTOR_DEACTIVATED` (records unassigned patient count), `DOCTOR_REMOVED`, and `PATIENT_UNASSIGNED`.
+     - `src/controllers/adminPatientController.js`: Instruments `PATIENT_ASSIGNED`, `PATIENT_REASSIGNED` (records `previousDoctorId` and `newDoctorId`), and `PATIENT_UNASSIGNED`.
+     - `src/controllers/adminDeviceController.js`: Instruments `DEVICE_CREATED`, `DEVICE_ACTIVATED`, `DEVICE_DEACTIVATED`, `DEVICE_RESET` (records `resetCount` and `previousPatientId`), and `DEVICE_DELETED`.
+  4. Super Admin Paginated Activity API & Immutability Enforcement (`src/controllers/adminController.js`, `src/routes/apiRoutes.js`, `src/routes/adminRoutes.js`):
+     - Implemented `GET /api/admin/activity` and upgraded `GET /admin/activity`.
+     - Strict RBAC: requires `authenticate` and `requireRole(ROLES.SUPER_ADMIN)` (PATIENT and DOCTOR receive 403 Forbidden; unauthenticated receive 401 Unauthorized).
+     - Safe pagination: default limit 50, maximum limit clamped to 100, newest-first sorting (`{ timestamp: -1 }`).
+     - Multi-parameter filtering: `action`, `actorId`, `actorRole`, `targetType`, `targetId`, and optional date ranges.
+     - Safe projection: returns only non-sensitive audit fields.
+     - Immutability guards: explicit HTTP 405 Method Not Allowed handlers mounted on `PUT`, `PATCH`, and `DELETE` routes for activity endpoints.
+  5. Super Admin Activity UI Upgrade (`src/views/admin/activity.ejs`, `src/public/css/admin.css`):
+     - Integrated action dropdown filter and actor ID input toolbar with Clear Filters button.
+     - Rendered semantic action badges (`action-badge-*`) and actor pills (`actor-pill-*`).
+     - Added real-time Socket.IO feed listener connecting to `admin:activity` room, dynamically prepending new audit events with a pulse animation without requiring page reload.
+     - Added pagination controls displaying current page, total pages, and event counts.
+  6. Socket.IO Room Isolation (`src/server.js`):
+     - Super Admin joins `admin:activity` and `admin:telemetry` rooms upon authenticated connection.
+     - Activity events (`admin-activity`) are emitted strictly to `admin:activity` room.
+     - Patients and doctors are restricted to their own rooms and cannot receive admin audit feeds.
+  7. Comprehensive Automated Verification Suite (`tests/activityAuditValidation.test.js`):
+     - Created 42 automated tests validating schema constraints, index declarations, logger sanitization, controller instrumentation, API authorization, pagination, filtering, immutability, and Socket.IO room isolation.
+     - Baseline regression: verified 438/438 tests passing across all 14 test suites (Phases 0–13). Zero regressions.
+
 ### 2026-10-02 — Phase 12: Device Monitoring & Telemetry Health Dashboard
 - **Phase / Task:** PHASE 12 (`TASK-12.1`, `TASK-12.2`)
 - **Change:**

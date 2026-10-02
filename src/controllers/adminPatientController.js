@@ -15,6 +15,7 @@ const {
     ACTOR_ROLES,
     TARGET_TYPES
 } = require("../config/constants");
+const { logActivity } = require("../utils/activityLogger");
 const { isApiRequest } = require("../middleware/authMiddleware");
 
 /**
@@ -197,27 +198,27 @@ const assignDoctor = async (req, res) => {
 
         // 6. Audit Logging
         const auditAction = isReassignment ? AUDIT_ACTIONS.PATIENT_REASSIGNED : AUDIT_ACTIONS.PATIENT_ASSIGNED;
+        const io = req.app && req.app.get ? req.app.get("io") : null;
         try {
-            await ActivityLog.create({
-                action: auditAction,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
-                targetType: TARGET_TYPES.PATIENT,
-                targetId: cleanPatientId,
-                details: {
+            await logActivity(
+                auditAction,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                TARGET_TYPES.PATIENT,
+                cleanPatientId,
+                {
                     patientId: cleanPatientId,
                     previousDoctorId,
                     newDoctorId: cleanDoctorId,
                     doctorName: doctor.name
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Patient assignment audit log warning:", auditErr.message);
         }
 
         // 7. Refresh real-time socket authorization rooms
-        const io = req.app && req.app.get ? req.app.get("io") : null;
         if (io) {
             try {
                 const sockets = await io.in(`patient:${cleanPatientId}`).fetchSockets();
@@ -293,26 +294,26 @@ const unassignDoctor = async (req, res) => {
         await patient.save();
 
         // Audit Logging
+        const io = req.app && req.app.get ? req.app.get("io") : null;
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.PATIENT_UNASSIGNED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
-                targetType: TARGET_TYPES.PATIENT,
-                targetId: cleanPatientId,
-                details: {
+            await logActivity(
+                AUDIT_ACTIONS.PATIENT_UNASSIGNED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                TARGET_TYPES.PATIENT,
+                cleanPatientId,
+                {
                     patientId: cleanPatientId,
                     previousDoctorId,
                     newDoctorId: null
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Patient unassignment audit log warning:", auditErr.message);
         }
 
         // Real-time socket room eviction: any doctor in patient room leaves
-        const io = req.app && req.app.get ? req.app.get("io") : null;
         if (io) {
             try {
                 const sockets = await io.in(`patient:${cleanPatientId}`).fetchSockets();

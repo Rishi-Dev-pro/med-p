@@ -26,11 +26,11 @@
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
 | **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 41 |
+| **Tasks Completed** | 44 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 5 |
-| **Overall Completion** | 89.1% |
+| **Tasks Not Started** | 2 |
+| **Overall Completion** | 95.7% |
 
 
 ---
@@ -201,9 +201,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-13.1` | Implement centralized audit logging utility `logActivity(...)` | `NOT_STARTED` | Phase 4, Phase 8 | `src/utils/activityLogger.js` | None (Not yet executed) | - | Non-blocking audit logger |
-| `TASK-13.2` | Instrument Auth, Doctor, Patient, and Device controllers with audit event capture | `NOT_STARTED` | `TASK-13.1` | `src/controllers/*.js` | None (Not yet executed) | - | Captures all administrative actions |
-| `TASK-13.3` | Implement `/admin/activity` route and chronological audit log feed view | `NOT_STARTED` | `TASK-13.1` | `src/controllers/adminController.js`, `src/views/admin/activity.ejs` | None (Not yet executed) | - | HIPAA-style compliance trail |
+| `TASK-13.1` | Implement centralized audit logging utility `logActivity(...)` with recursive credential sanitizer and real-time Socket.IO dispatch | `DONE` | Phase 4, Phase 8 | `src/utils/activityLogger.js`, `src/models/ActivityLog.js` | `node tests/activityAuditValidation.test.js` (Tests 1–14 PASS) | 2026-10-02 | Non-blocking, server-authoritative, recursive redaction |
+| `TASK-13.2` | Instrument Auth, Doctor, Patient, and Device controllers with audit event capture | `DONE` | `TASK-13.1` | `src/controllers/*.js` | `node tests/activityAuditValidation.test.js` (Tests 15–32 PASS) | 2026-10-02 | Covers login, logout, doctor lifecycle, assignments, device reset |
+| `TASK-13.3` | Implement `/admin/activity` and `/api/admin/activity` route, paginated filterable queries, real-time live feed UI, and immutability guards | `DONE` | `TASK-13.1` | `src/controllers/adminController.js`, `src/routes/*.js`, `src/views/admin/activity.ejs` | `node tests/activityAuditValidation.test.js` (Tests 33–42 PASS) | 2026-10-02 | Append-only, PUT/PATCH/DELETE return 405, room-scoped real-time feed |
 
 ---
 

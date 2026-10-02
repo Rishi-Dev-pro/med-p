@@ -12,11 +12,16 @@ const { ACCOUNT_STATUS, ROLES } = require("./config/constants");
 
 const PORT = process.env.PORT || 5000;
 
+const { setActivityLoggerIO } = require("./utils/activityLogger");
+
 /**
  * Configure Socket.IO authentication and room authorization
  * @param {Server} io 
  */
 function setupSocketIO(io) {
+    if (io) {
+        setActivityLoggerIO(io);
+    }
     // 1. Socket.IO Handshake Authentication Middleware
     io.use(async (socket, next) => {
         try {
@@ -108,9 +113,9 @@ function setupSocketIO(io) {
             socket.join(doctorRoom);
             console.log(`Socket ${socket.id} joined room: ${doctorRoom}`);
         } else if (user.role === ROLES.SUPER_ADMIN) {
-            const adminRoom = "admin:telemetry";
-            socket.join(adminRoom);
-            console.log(`Socket ${socket.id} joined room: ${adminRoom}`);
+            socket.join("admin:telemetry");
+            socket.join("admin:activity");
+            console.log(`Socket ${socket.id} joined rooms: admin:telemetry, admin:activity`);
         }
 
         // Room joining listener - strictly enforces authorization and ignores spoofed client payloads

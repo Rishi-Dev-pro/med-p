@@ -41,6 +41,15 @@ router.delete("/doctors/:doctorId", authenticate, requireRole(ROLES.SUPER_ADMIN)
 // Super Admin Management Foundations
 router.get("/patients", authenticate, requireRole(ROLES.SUPER_ADMIN), adminPatientController.getPatients);
 router.get("/activity", authenticate, requireRole(ROLES.SUPER_ADMIN), adminController.getActivity);
+router.all(["/activity", "/activity/:id"], authenticate, requireRole(ROLES.SUPER_ADMIN), (req, res, next) => {
+    if (["PUT", "PATCH", "DELETE", "POST"].includes(req.method)) {
+        return res.status(405).json({
+            success: false,
+            message: "Activity log is strictly append-only and immutable. Modification or deletion is prohibited."
+        });
+    }
+    next();
+});
 
 // Phase 5 Hardware Device Management & Lifecycle Endpoints
 router.get("/devices", authenticate, requireRole(ROLES.SUPER_ADMIN), adminDeviceController.getDevices);

@@ -18,6 +18,7 @@ const {
     TARGET_TYPES
 } = require("../config/constants");
 const { hashPassword } = require("../utils/authUtils");
+const { logActivity } = require("../utils/activityLogger");
 const { isApiRequest } = require("../middleware/authMiddleware");
 
 /**
@@ -297,20 +298,21 @@ const createDoctor = async (req, res) => {
 
         // 10. Audit logging (NEVER log password or passwordHash)
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DOCTOR_CREATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DOCTOR,
-                targetId: finalDoctorId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DOCTOR_CREATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DOCTOR,
+                finalDoctorId,
+                {
                     doctorId: finalDoctorId,
                     name: cleanName,
                     email: cleanEmail,
                     specialization: cleanSpecialization
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Doctor creation audit log warning:", auditErr.message);
         }
@@ -477,19 +479,20 @@ const activateDoctor = async (req, res) => {
 
         // Audit log
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DOCTOR_ACTIVATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DOCTOR,
-                targetId: cleanDoctorId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DOCTOR_ACTIVATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DOCTOR,
+                cleanDoctorId,
+                {
                     previousDoctorStatus,
                     status: DOCTOR_STATUS.ACTIVE,
                     accountStatus: ACCOUNT_STATUS.ACTIVE
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Doctor activation audit log warning:", auditErr.message);
         }
@@ -555,28 +558,28 @@ const deactivateDoctor = async (req, res) => {
         const assignedPatients = await Patient.find({ doctorId: cleanDoctorId });
         if (assignedPatients.length > 0) {
             await Patient.updateMany({ doctorId: cleanDoctorId }, { $set: { doctorId: null } });
+            const io = req.app && req.app.get ? req.app.get("io") : null;
             for (const pat of assignedPatients) {
                 try {
-                    await ActivityLog.create({
-                        action: AUDIT_ACTIONS.PATIENT_UNASSIGNED,
-                        actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                        actorId: req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
-                        targetType: TARGET_TYPES.PATIENT,
-                        targetId: pat.patientId,
-                        details: {
+                    await logActivity(
+                        AUDIT_ACTIONS.PATIENT_UNASSIGNED,
+                        ACTOR_ROLES.SUPER_ADMIN,
+                        req.user ? (req.user.username || req.user.userId || "SUPER_ADMIN") : "SUPER_ADMIN",
+                        TARGET_TYPES.PATIENT,
+                        pat.patientId,
+                        {
                             reason: "DOCTOR_DEACTIVATED",
                             previousDoctorId: cleanDoctorId,
                             newDoctorId: null
                         },
-                        timestamp: new Date()
-                    });
+                        io
+                    );
                 } catch (patAuditErr) {
                     console.warn("Patient deactivation unassignment audit log warning:", patAuditErr.message);
                 }
             }
 
             // Real-time socket room eviction for deactivated doctor
-            const io = req.app && req.app.get ? req.app.get("io") : null;
             if (io) {
                 for (const pat of assignedPatients) {
                     try {
@@ -595,20 +598,21 @@ const deactivateDoctor = async (req, res) => {
 
         // Audit log
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DOCTOR_DEACTIVATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DOCTOR,
-                targetId: cleanDoctorId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DOCTOR_DEACTIVATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DOCTOR,
+                cleanDoctorId,
+                {
                     previousDoctorStatus,
                     status: DOCTOR_STATUS.INACTIVE,
                     accountStatus: ACCOUNT_STATUS.SUSPENDED,
                     unassignedPatientCount: assignedPatients.length
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Doctor deactivation audit log warning:", auditErr.message);
         }
@@ -676,19 +680,20 @@ const deleteDoctor = async (req, res) => {
 
         // Audit log
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DOCTOR_REMOVED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DOCTOR,
-                targetId: cleanDoctorId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DOCTOR_REMOVED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DOCTOR,
+                cleanDoctorId,
+                {
                     name: doctor.name,
                     email: doctor.email,
                     lastStatus: doctor.status
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Doctor deletion audit log warning:", auditErr.message);
         }

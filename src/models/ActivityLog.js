@@ -21,7 +21,7 @@ const activityLogSchema = new mongoose.Schema(
         },
         actorId: {
             type: String,
-            required: [true, "actorId is required"],
+            default: null,
             trim: true
         },
         targetType: {
@@ -44,8 +44,7 @@ const activityLogSchema = new mongoose.Schema(
         timestamp: {
             type: Date,
             required: true,
-            default: Date.now,
-            index: -1
+            default: Date.now
         }
     },
     {
@@ -53,7 +52,9 @@ const activityLogSchema = new mongoose.Schema(
     }
 );
 
-// Compound indexes required for fast chronological querying by actor and by target entity
+// Indexes required for fast chronological querying by actor, target entity, and timestamp stream
+activityLogSchema.index({ timestamp: -1 });
+activityLogSchema.index({ actorId: 1 });
 activityLogSchema.index({ actorId: 1, timestamp: -1 });
 activityLogSchema.index({ targetId: 1, timestamp: -1 });
 

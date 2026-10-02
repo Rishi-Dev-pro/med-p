@@ -812,3 +812,273 @@
     background: #D97706;
 }
 
+/* --------------------------------------------------------
+   PHASE 13: ACTIVITY FEED, FILTERS & AUDIT STYLING
+   -------------------------------------------------------- */
+.activity-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.activity-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.activity-filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.activity-select, .activity-input {
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--vanilla);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.activity-select:focus, .activity-input:focus {
+    border-color: var(--burnt-orange);
+}
+
+.activity-filter-btn {
+    padding: 8px 16px;
+    background: var(--burnt-orange);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.activity-filter-btn:hover {
+    opacity: 0.9;
+}
+
+.activity-clear-btn {
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+    padding: 8px 12px;
+    transition: color 0.15s ease;
+}
+
+.activity-clear-btn:hover {
+    color: var(--vanilla);
+}
+
+/* Action Badges */
+.action-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    font-family: monospace;
+}
+
+.action-badge-auth-success {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.action-badge-auth-failed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.action-badge-auth-logout {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94A3B8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.action-badge-created {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.action-badge-activated {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.action-badge-deactivated {
+    background: rgba(245, 158, 11, 0.15);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.action-badge-reset {
+    background: rgba(252, 108, 38, 0.15);
+    color: var(--burnt-orange);
+    border: 1px solid rgba(252, 108, 38, 0.3);
+}
+
+.action-badge-removed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.action-badge-assigned {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818CF8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.action-badge-unassigned {
+    background: rgba(217, 119, 6, 0.15);
+    color: #F59E0B;
+    border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.action-badge-reassigned {
+    background: rgba(168, 85, 247, 0.15);
+    color: #C084FC;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* Actor Pills */
+.actor-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.actor-pill-admin {
+    background: rgba(252, 108, 38, 0.15);
+    color: var(--burnt-orange);
+}
+
+.actor-pill-doctor {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818CF8;
+}
+
+.actor-pill-patient {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+}
+
+.actor-pill-system {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94A3B8;
+}
+
+.actor-pill-unknown {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+}
+
+/* Target Badge */
+.target-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+.target-type-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* Details Box */
+.details-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 320px;
+}
+
+.detail-pill {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--vanilla);
+    font-family: monospace;
+}
+
+/* Pagination Bar */
+.activity-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.activity-pagination-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 6px 14px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--vanilla);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.page-btn:hover:not(.disabled) {
+    background: var(--burnt-orange);
+    border-color: var(--burnt-orange);
+    color: white;
+}
+
+.page-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: default;
+}
+
+/* Live Activity Row Animation */
+@keyframes activityHighlight {
+    0% { background: rgba(252, 108, 38, 0.35); }
+    100% { background: transparent; }
+}
+
+.live-activity-row {
+    animation: activityHighlight 2.5s ease-out;
+}
+
+

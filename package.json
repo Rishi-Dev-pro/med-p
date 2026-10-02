@@ -21,7 +21,8 @@
     "test:history": "node tests/readingHistoryValidation.test.js",
     "test:chart": "node tests/chartVisualizationValidation.test.js",
     "test:health": "node tests/deviceHealthValidation.test.js",
-    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health"
+    "test:activity": "node tests/activityAuditValidation.test.js",
+    "test": "npm run test:schema && npm run test:simulator && npm run test:auth && npm run test:rbac && npm run test:admin && npm run test:device && npm run test:claim && npm run test:doctor && npm run test:assignment && npm run test:dashboard && npm run test:history && npm run test:chart && npm run test:health && npm run test:activity"
   },
   "keywords": [],
   "author": "",

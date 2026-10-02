@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthTrack — Super Admin Activity</title>
+    <title>HealthTrack — System Activity & Audit Trail</title>
     <link rel="stylesheet" href="/css/global.css">
     <link rel="stylesheet" href="/css/admin.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div class="admin-shell">
@@ -14,78 +15,285 @@
     <div class="admin-main">
         <%- include("partials/topbar", { 
             pageTitle: "System Activity & Audit Trail", 
-            pageSubtitle: "Immutable system event logs, administrative actions, and security triggers",
+            pageSubtitle: "Immutable system event logs, administrative actions, and real-time security telemetry",
             user 
         }) %>
 
         <main class="admin-content-body">
-            <!-- Phase 13 Foundation Notice -->
-            <div class="foundation-banner">
-                <span class="foundation-badge">PHASE 4 FOUNDATION</span>
+            <!-- Live Audit Status Banner -->
+            <div class="foundation-banner" style="border-color: rgba(52, 211, 153, 0.3); background: rgba(16, 185, 129, 0.06);">
+                <div class="status-pulse" style="margin-top: 4px;"></div>
                 <p>
-                    <strong>Administrative Audit Trail Foundation:</strong> Read-only inspection of system events. Complete chronological audit streaming, multi-parameter filtering, and security compliance analytics are scheduled for <strong>Phase 13 (Centralized System Activity & Audit Trail)</strong>.
+                    <strong style="color: #34D399;">Real-Time Audit Stream Active:</strong> Server-authoritative audit logging for authentication, clinical account provisioning, patient assignment, and hardware lifecycles. New events are broadcast live via Socket.IO without page reloads. System Activity & Audit Trail is immutable.
                 </p>
             </div>
 
-            <section class="section-panel">
-                <div class="panel-header">
-                    <h2 class="panel-title">System Event Log</h2>
-                    <span class="panel-badge"><%= activities ? activities.length : 0 %> Events Recorded</span>
+            <!-- Activity Filter Toolbar -->
+            <form action="/admin/activity" method="GET" class="activity-filter-bar">
+                <div class="activity-filter-group">
+                    <label for="filter-action" class="activity-filter-label">Action:</label>
+                    <select id="filter-action" name="action" class="activity-select">
+                        <option value="">All Actions</option>
+                        <% if (typeof availableActions !== 'undefined' && availableActions.length > 0) { %>
+                            <% availableActions.forEach(act => { %>
+                                <option value="<%= act %>" <%= (filters && filters.action === act) ? 'selected' : '' %>>
+                                    <%= act %>
+                                </option>
+                            <% }) %>
+                        <% } %>
+                    </select>
                 </div>
 
-                <% if (!activities || activities.length === 0) { %>
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
-                        <h3>No activity records logged yet</h3>
-                        <p>Immutable system audit records will be generated automatically when administrative and clinical events occur on the platform.</p>
+                <div class="activity-filter-group">
+                    <label for="filter-actor" class="activity-filter-label">Actor ID:</label>
+                    <input 
+                        type="text" 
+                        id="filter-actor" 
+                        name="actorId" 
+                        class="activity-input" 
+                        placeholder="e.g. admin, DOC-001" 
+                        value="<%= (filters && filters.actorId) ? filters.actorId : '' %>"
+                    />
+                </div>
+
+                <button type="submit" class="activity-filter-btn">Filter Events</button>
+                <% if ((filters && (filters.action || filters.actorId || filters.actorRole))) { %>
+                    <a href="/admin/activity" class="activity-clear-btn">Clear Filters</a>
+                <% } %>
+            </form>
+
+            <section class="section-panel">
+                <div class="panel-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h2 class="panel-title">System Event Stream</h2>
+                        <span id="live-indicator" style="font-size: 11px; color: #34D399; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                            <span class="status-pulse"></span> LIVE
+                        </span>
                     </div>
-                <% } else { %>
-                    <div class="table-responsive">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Action</th>
-                                    <th>Actor</th>
-                                    <th>Target Entity</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    <span class="panel-badge" id="activity-count-badge">
+                        <%= (typeof pagination !== 'undefined' && pagination.total !== undefined) ? pagination.total : (activities ? activities.length : 0) %> Events Recorded
+                    </span>
+                </div>
+
+                <div id="empty-state-wrap" class="empty-state" style="<%= (!activities || activities.length === 0) ? '' : 'display: none;' %>">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>No activity records logged yet</h3>
+                    <p>No activity records logged yet matching criteria. System events are recorded automatically upon platform modifications.</p>
+                </div>
+
+                <div id="table-wrap" class="table-responsive" style="<%= (!activities || activities.length === 0) ? 'display: none;' : '' %>">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Actor</th>
+                                <th>Target Entity</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-tbody">
+                            <% if (activities && activities.length > 0) { %>
                                 <% activities.forEach(act => { %>
-                                    <tr>
-                                        <td><%= act.timestamp ? new Date(act.timestamp).toLocaleString() : "—" %></td>
-                                        <td>
-                                            <span class="status-pill active-pill"><%= act.action %></span>
+                                    <% 
+                                        let actionBadgeClass = 'action-badge-created';
+                                        if (act.action.includes('AUTH_LOGIN_SUCCESS')) actionBadgeClass = 'action-badge-auth-success';
+                                        else if (act.action.includes('AUTH_LOGIN_FAILED')) actionBadgeClass = 'action-badge-auth-failed';
+                                        else if (act.action.includes('LOGOUT')) actionBadgeClass = 'action-badge-auth-logout';
+                                        else if (act.action.includes('RESET')) actionBadgeClass = 'action-badge-reset';
+                                        else if (act.action.includes('REMOVED') || act.action.includes('DELETED')) actionBadgeClass = 'action-badge-removed';
+                                        else if (act.action.includes('DEACTIVATED')) actionBadgeClass = 'action-badge-deactivated';
+                                        else if (act.action.includes('REASSIGNED')) actionBadgeClass = 'action-badge-reassigned';
+                                        else if (act.action.includes('ASSIGNED')) actionBadgeClass = 'action-badge-assigned';
+                                        else if (act.action.includes('ACTIVATED')) actionBadgeClass = 'action-badge-activated';
+
+                                        let actorPillClass = 'actor-pill-system';
+                                        if (act.actorRole === 'SUPER_ADMIN') actorPillClass = 'actor-pill-admin';
+                                        else if (act.actorRole === 'DOCTOR') actorPillClass = 'actor-pill-doctor';
+                                        else if (act.actorRole === 'PATIENT') actorPillClass = 'actor-pill-patient';
+                                        else if (act.actorRole === 'UNKNOWN') actorPillClass = 'actor-pill-unknown';
+                                    %>
+                                    <tr data-id="<%= act._id %>">
+                                        <td style="white-space: nowrap; font-size: 12px; color: var(--muted);">
+                                            <%= act.timestamp ? new Date(act.timestamp).toLocaleString() : "—" %>
                                         </td>
                                         <td>
-                                            <strong><%= act.actorRole || "SYSTEM" %></strong>
+                                            <span class="action-badge <%= actionBadgeClass %>">
+                                                <%= act.action %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="actor-pill <%= actorPillClass %>">
+                                                <%= act.actorRole || "SYSTEM" %>
+                                            </span>
                                             <% if (act.actorId) { %>
-                                                <span class="id-cell">(<%= act.actorId %>)</span>
+                                                <span class="id-cell" style="margin-left: 4px;"><%= act.actorId %></span>
                                             <% } %>
                                         </td>
                                         <td>
-                                            <span><%= act.targetType || "ENTITY" %></span>
-                                            <% if (act.targetId) { %>
-                                                <span class="id-cell"><%= act.targetId %></span>
-                                            <% } %>
+                                            <span class="target-badge">
+                                                <span class="target-type-label"><%= act.targetType || "ENTITY" %></span>
+                                                <% if (act.targetId) { %>
+                                                    <span class="id-cell" style="color: var(--vanilla);"><%= act.targetId %></span>
+                                                <% } else { %>
+                                                    <span class="metric-sub">—</span>
+                                                <% } %>
+                                            </span>
                                         </td>
                                         <td>
                                             <% if (act.details && Object.keys(act.details).length > 0) { %>
-                                                <pre style="font-size: 11px; margin: 0; color: var(--muted);"><%= JSON.stringify(act.details) %></pre>
+                                                <div class="details-summary">
+                                                    <% for (const [k, v] of Object.entries(act.details)) { %>
+                                                        <span class="detail-pill"><strong><%= k %>:</strong> <%= typeof v === 'object' ? JSON.stringify(v) : v %></span>
+                                                    <% } %>
+                                                </div>
                                             <% } else { %>
                                                 <span class="metric-sub">—</span>
                                             <% } %>
                                         </td>
                                     </tr>
                                 <% }) %>
-                            </tbody>
-                        </table>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <% if (typeof pagination !== 'undefined' && pagination.pages > 1) { %>
+                    <div class="activity-pagination">
+                        <span>
+                            Page <%= pagination.page %> of <%= pagination.pages %> (<%= pagination.total %> total events)
+                        </span>
+                        <div class="activity-pagination-actions">
+                            <% 
+                                const baseQuery = [];
+                                if (filters && filters.action) baseQuery.push(`action=${encodeURIComponent(filters.action)}`);
+                                if (filters && filters.actorId) baseQuery.push(`actorId=${encodeURIComponent(filters.actorId)}`);
+                                const queryString = baseQuery.length > 0 ? `&${baseQuery.join('&')}` : '';
+                            %>
+                            <a 
+                                href="/admin/activity?page=<%= pagination.page - 1 %><%= queryString %>" 
+                                class="page-btn <%= pagination.page <= 1 ? 'disabled' : '' %>"
+                            >
+                                &larr; Previous
+                            </a>
+                            <a 
+                                href="/admin/activity?page=<%= pagination.page + 1 %><%= queryString %>" 
+                                class="page-btn <%= pagination.page >= pagination.pages ? 'disabled' : '' %>"
+                            >
+                                Next &rarr;
+                            </a>
+                        </div>
                     </div>
                 <% } %>
             </section>
         </main>
     </div>
 </div>
+
+<!-- Client-side Real-Time Socket.IO Audit Subscription -->
+<script>
+(function() {
+    try {
+        const socket = io({
+            withCredentials: true
+        });
+
+        const tbody = document.getElementById("activity-tbody");
+        const emptyState = document.getElementById("empty-state-wrap");
+        const tableWrap = document.getElementById("table-wrap");
+        const badge = document.getElementById("activity-count-badge");
+
+        function getActionBadgeClass(action) {
+            if (action.includes("AUTH_LOGIN_SUCCESS")) return "action-badge-auth-success";
+            if (action.includes("AUTH_LOGIN_FAILED")) return "action-badge-auth-failed";
+            if (action.includes("LOGOUT")) return "action-badge-auth-logout";
+            if (action.includes("RESET")) return "action-badge-reset";
+            if (action.includes("REMOVED") || action.includes("DELETED")) return "action-badge-removed";
+            if (action.includes("DEACTIVATED")) return "action-badge-deactivated";
+            if (action.includes("REASSIGNED")) return "action-badge-reassigned";
+            if (action.includes("ASSIGNED")) return "action-badge-assigned";
+            if (action.includes("ACTIVATED")) return "action-badge-activated";
+            return "action-badge-created";
+        }
+
+        function getActorPillClass(role) {
+            if (role === "SUPER_ADMIN") return "actor-pill-admin";
+            if (role === "DOCTOR") return "actor-pill-doctor";
+            if (role === "PATIENT") return "actor-pill-patient";
+            if (role === "UNKNOWN") return "actor-pill-unknown";
+            return "actor-pill-system";
+        }
+
+        socket.on("connect", function() {
+            console.log("[AuditStream] Socket connected to real-time activity feed:", socket.id);
+        });
+
+        socket.on("admin-activity", function(evt) {
+            if (!evt || !evt.action) return;
+
+            // Check if current page has an active action filter that doesn't match
+            const urlParams = new URLSearchParams(window.location.search);
+            const actionFilter = urlParams.get("action");
+            const actorFilter = urlParams.get("actorId");
+
+            if (actionFilter && actionFilter !== evt.action) return;
+            if (actorFilter && evt.actorId && !evt.actorId.toLowerCase().includes(actorFilter.toLowerCase())) return;
+
+            if (emptyState) emptyState.style.display = "none";
+            if (tableWrap) tableWrap.style.display = "";
+
+            const row = document.createElement("tr");
+            row.className = "live-activity-row";
+            row.setAttribute("data-id", evt._id || "");
+
+            // Format details
+            let detailsHtml = '<span class="metric-sub">—</span>';
+            if (evt.details && Object.keys(evt.details).length > 0) {
+                const pills = Object.entries(evt.details).map(([k, v]) => {
+                    const displayVal = typeof v === 'object' ? JSON.stringify(v) : v;
+                    return `<span class="detail-pill"><strong>${k}:</strong> ${displayVal}</span>`;
+                }).join(" ");
+                detailsHtml = `<div class="details-summary">${pills}</div>`;
+            }
+
+            const formattedTime = evt.timestamp ? new Date(evt.timestamp).toLocaleString() : new Date().toLocaleString();
+            const actionClass = getActionBadgeClass(evt.action);
+            const actorClass = getActorPillClass(evt.actorRole);
+
+            row.innerHTML = `
+                <td style="white-space: nowrap; font-size: 12px; color: var(--muted);">${formattedTime}</td>
+                <td><span class="action-badge ${actionClass}">${evt.action}</span></td>
+                <td>
+                    <span class="actor-pill ${actorClass}">${evt.actorRole || "SYSTEM"}</span>
+                    ${evt.actorId ? `<span class="id-cell" style="margin-left: 4px;">${evt.actorId}</span>` : ''}
+                </td>
+                <td>
+                    <span class="target-badge">
+                        <span class="target-type-label">${evt.targetType || "ENTITY"}</span>
+                        ${evt.targetId ? `<span class="id-cell" style="color: var(--vanilla);">${evt.targetId}</span>` : '<span class="metric-sub">—</span>'}
+                    </span>
+                </td>
+                <td>${detailsHtml}</td>
+            `;
+
+            if (tbody) {
+                tbody.insertBefore(row, tbody.firstChild);
+            }
+
+            // Update badge counter
+            if (badge) {
+                const match = badge.innerText.match(/(\d+)/);
+                if (match) {
+                    const nextCount = parseInt(match[1], 10) + 1;
+                    badge.innerText = nextCount + " Events Recorded";
+                }
+            }
+        });
+    } catch (e) {
+        console.warn("[AuditStream] Real-time socket initialization skipped:", e.message);
+    }
+})();
+</script>
 </body>
 </html>

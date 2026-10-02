@@ -8,8 +8,9 @@ const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const ActivityLog = require("../models/ActivityLog");
 const { ROLES, ACCOUNT_STATUS, DOCTOR_STATUS, DEVICE_STATUS, AUDIT_ACTIONS, ACTOR_ROLES, TARGET_TYPES } = require("../config/constants");
-const { hashPassword, comparePassword, generateToken } = require("../utils/authUtils");
+const { hashPassword, comparePassword, generateToken, verifyToken } = require("../utils/authUtils");
 const { COOKIE_NAME, getCookieOptions } = require("../config/auth");
+const { logActivity } = require("../utils/activityLogger");
 
 /**
  * Register a new Patient
@@ -189,31 +190,30 @@ const register = async (req, res) => {
 
         // 10. Audit logging (non-blocking)
         try {
-            await ActivityLog.create([
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.PATIENT_REGISTERED,
+                ACTOR_ROLES.PATIENT,
+                candidateId,
+                TARGET_TYPES.PATIENT,
+                candidateId,
                 {
-                    action: AUDIT_ACTIONS.PATIENT_REGISTERED,
-                    actorRole: ACTOR_ROLES.PATIENT,
-                    actorId: candidateId,
-                    targetType: TARGET_TYPES.PATIENT,
-                    targetId: candidateId,
-                    details: {
-                        deviceId: cleanDeviceId,
-                        email: cleanEmail
-                    },
-                    timestamp: new Date()
+                    deviceId: cleanDeviceId,
+                    email: cleanEmail
                 },
+                io
+            );
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_ASSIGNED,
+                ACTOR_ROLES.PATIENT,
+                candidateId,
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
                 {
-                    action: AUDIT_ACTIONS.DEVICE_ASSIGNED,
-                    actorRole: ACTOR_ROLES.PATIENT,
-                    actorId: candidateId,
-                    targetType: TARGET_TYPES.DEVICE,
-                    targetId: cleanDeviceId,
-                    details: {
-                        patientId: candidateId
-                    },
-                    timestamp: new Date()
-                }
-            ]);
+                    patientId: candidateId
+                },
+                io
+            );
         } catch (auditErr) {
             console.warn("Registration audit log error:", auditErr.message);
         }
@@ -291,6 +291,24 @@ const login = async (req, res) => {
 
         // 3. User not found -> generic credentials rejection
         if (!user) {
+            try {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+                    ACTOR_ROLES.UNKNOWN,
+                    null,
+                    TARGET_TYPES.USER,
+                    null,
+                    {
+                        method: cleanIdentifier.includes("@") ? "email" : "username",
+                        reason: "USER_NOT_FOUND"
+                    },
+                    io
+                );
+            } catch (auditErr) {
+                console.warn("Login failure audit log warning:", auditErr.message);
+            }
+
             return res.status(401).json({
                 success: false,
                 message: "Invalid credentials"
@@ -299,6 +317,24 @@ const login = async (req, res) => {
 
         // 4. Verify account status permits authentication
         if (user.status !== ACCOUNT_STATUS.ACTIVE) {
+            try {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+                    user.role || ACTOR_ROLES.UNKNOWN,
+                    user._id.toString(),
+                    TARGET_TYPES.USER,
+                    user._id.toString(),
+                    {
+                        username: user.username,
+                        reason: "ACCOUNT_SUSPENDED"
+                    },
+                    io
+                );
+            } catch (auditErr) {
+                console.warn("Login suspension audit log warning:", auditErr.message);
+            }
+
             return res.status(403).json({
                 success: false,
                 message: "Account is suspended. Authentication rejected."
@@ -310,6 +346,24 @@ const login = async (req, res) => {
             const Doctor = require("../models/Doctor");
             const doctorProfile = await Doctor.findOne({ doctorId: user.profileId }).select("status").lean();
             if (doctorProfile && doctorProfile.status !== DOCTOR_STATUS.ACTIVE) {
+                try {
+                    const io = req.app && req.app.get ? req.app.get("io") : null;
+                    await logActivity(
+                        AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+                        ACTOR_ROLES.DOCTOR,
+                        user.profileId,
+                        TARGET_TYPES.DOCTOR,
+                        user.profileId,
+                        {
+                            doctorId: user.profileId,
+                            reason: "DOCTOR_INACTIVE"
+                        },
+                        io
+                    );
+                } catch (auditErr) {
+                    console.warn("Doctor login suspension audit log warning:", auditErr.message);
+                }
+
                 return res.status(403).json({
                     success: false,
                     message: "Account is suspended. Authentication rejected."
@@ -320,10 +374,48 @@ const login = async (req, res) => {
         // 5. Verify password using bcrypt
         const isMatch = await comparePassword(password, user.passwordHash);
         if (!isMatch) {
+            try {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+                    user.role || ACTOR_ROLES.UNKNOWN,
+                    user._id.toString(),
+                    TARGET_TYPES.USER,
+                    user._id.toString(),
+                    {
+                        username: user.username,
+                        reason: "INVALID_PASSWORD"
+                    },
+                    io
+                );
+            } catch (auditErr) {
+                console.warn("Login failure audit log warning:", auditErr.message);
+            }
+
             return res.status(401).json({
                 success: false,
                 message: "Invalid credentials"
             });
+        }
+
+        // 5b. Audit logging for successful login
+        try {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.AUTH_LOGIN_SUCCESS,
+                user.role,
+                user.profileId || user._id.toString(),
+                TARGET_TYPES.USER,
+                user._id.toString(),
+                {
+                    username: user.username,
+                    role: user.role,
+                    profileId: user.profileId
+                },
+                io
+            );
+        } catch (auditErr) {
+            console.warn("Login success audit log warning:", auditErr.message);
         }
 
         // 6. Generate JWT token containing minimal identity
@@ -363,6 +455,36 @@ const login = async (req, res) => {
  */
 const logout = async (req, res) => {
     try {
+        let authUser = req.user;
+        if (!authUser && req.cookies) {
+            const rawToken = req.cookies[COOKIE_NAME] || req.cookies["jwt"];
+            if (rawToken) {
+                try {
+                    authUser = verifyToken(rawToken);
+                } catch {}
+            }
+        }
+
+        if (authUser) {
+            try {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.AUTH_LOGOUT,
+                    authUser.role || ACTOR_ROLES.UNKNOWN,
+                    authUser.profileId || authUser.userId || authUser.id,
+                    TARGET_TYPES.USER,
+                    authUser.userId || authUser.id || null,
+                    {
+                        role: authUser.role,
+                        profileId: authUser.profileId
+                    },
+                    io
+                );
+            } catch (auditErr) {
+                console.warn("Logout audit log warning:", auditErr.message);
+            }
+        }
+
         const cookieOptions = getCookieOptions();
         res.clearCookie(COOKIE_NAME, cookieOptions);
         res.clearCookie("jwt", cookieOptions);

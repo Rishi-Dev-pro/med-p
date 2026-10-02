@@ -17,6 +17,7 @@ const {
 } = require("../config/constants");
 const { isApiRequest } = require("../middleware/authMiddleware");
 const { getDeviceHealth, calculateObservedFrequency, batchCalculateObservedFrequency } = require("../utils/deviceHealth");
+const { logActivity } = require("../utils/activityLogger");
 
 /**
  * Helper to safely sanitize a device document for API responses.
@@ -143,19 +144,20 @@ const createDevice = async (req, res) => {
 
         // 3. Log lifecycle audit event
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DEVICE_CREATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DEVICE,
-                targetId: cleanDeviceId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_CREATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
                     type: device.type,
                     status: device.status,
                     resetCount: device.resetCount
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Device creation audit log warning:", auditErr.message);
         }
@@ -293,19 +295,20 @@ const activateDevice = async (req, res) => {
 
         // Log audit event
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DEVICE_ACTIVATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DEVICE,
-                targetId: cleanDeviceId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_ACTIVATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
                     previousStatus,
                     status: device.status,
                     patientId: device.patientId
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Device activation audit log warning:", auditErr.message);
         }
@@ -352,19 +355,20 @@ const deactivateDevice = async (req, res) => {
 
         // Log audit event
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DEVICE_DEACTIVATED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DEVICE,
-                targetId: cleanDeviceId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_DEACTIVATED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
                     previousStatus,
                     status: device.status,
                     patientId: device.patientId
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Device deactivation audit log warning:", auditErr.message);
         }
@@ -436,23 +440,20 @@ const resetDevice = async (req, res) => {
                     );
                 }
 
-                await ActivityLog.create(
-                    [
-                        {
-                            action: AUDIT_ACTIONS.DEVICE_RESET,
-                            actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                            actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                            targetType: TARGET_TYPES.DEVICE,
-                            targetId: cleanDeviceId,
-                            details: {
-                                previousPatientId: formerPatientId,
-                                resetCount: devInTx.resetCount,
-                                status: devInTx.status,
-                                atomicity: "TRANSACTION"
-                            },
-                            timestamp: new Date()
-                        }
-                    ],
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.DEVICE_RESET,
+                    ACTOR_ROLES.SUPER_ADMIN,
+                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    TARGET_TYPES.DEVICE,
+                    cleanDeviceId,
+                    {
+                        previousPatientId: formerPatientId,
+                        resetCount: devInTx.resetCount,
+                        status: devInTx.status,
+                        atomicity: "TRANSACTION"
+                    },
+                    io,
                     { session }
                 );
 
@@ -503,20 +504,21 @@ const resetDevice = async (req, res) => {
             }
 
             try {
-                await ActivityLog.create({
-                    action: AUDIT_ACTIONS.DEVICE_RESET,
-                    actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                    actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                    targetType: TARGET_TYPES.DEVICE,
-                    targetId: cleanDeviceId,
-                    details: {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.DEVICE_RESET,
+                    ACTOR_ROLES.SUPER_ADMIN,
+                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    TARGET_TYPES.DEVICE,
+                    cleanDeviceId,
+                    {
                         previousPatientId: formerPatientId,
                         resetCount: device.resetCount,
                         status: device.status,
                         atomicity: "COORDINATED_COMPENSATION"
                     },
-                    timestamp: new Date()
-                });
+                    io
+                );
             } catch (auditErr) {
                 console.warn("Reset audit log error:", auditErr.message);
             }
@@ -575,19 +577,20 @@ const deleteDevice = async (req, res) => {
 
         // Log audit event
         try {
-            await ActivityLog.create({
-                action: AUDIT_ACTIONS.DEVICE_DELETED,
-                actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                targetType: TARGET_TYPES.DEVICE,
-                targetId: cleanDeviceId,
-                details: {
+            const io = req.app && req.app.get ? req.app.get("io") : null;
+            await logActivity(
+                AUDIT_ACTIONS.DEVICE_DELETED,
+                ACTOR_ROLES.SUPER_ADMIN,
+                req.user.username || req.user.userId || "SUPER_ADMIN",
+                TARGET_TYPES.DEVICE,
+                cleanDeviceId,
+                {
                     lastStatus: device.status,
                     resetCount: device.resetCount,
                     type: device.type
                 },
-                timestamp: new Date()
-            });
+                io
+            );
         } catch (auditErr) {
             console.warn("Device deletion audit log warning:", auditErr.message);
         }
@@ -684,21 +687,18 @@ const assignDevice = async (req, res) => {
                 patient.deviceId = cleanDeviceId;
                 await patient.save({ session });
 
-                await ActivityLog.create(
-                    [
-                        {
-                            action: AUDIT_ACTIONS.DEVICE_ASSIGNED,
-                            actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                            actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                            targetType: TARGET_TYPES.DEVICE,
-                            targetId: cleanDeviceId,
-                            details: {
-                                patientId: cleanPatientId,
-                                atomicity: "TRANSACTION"
-                            },
-                            timestamp: new Date()
-                        }
-                    ],
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.DEVICE_ASSIGNED,
+                    ACTOR_ROLES.SUPER_ADMIN,
+                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    TARGET_TYPES.DEVICE,
+                    cleanDeviceId,
+                    {
+                        patientId: cleanPatientId,
+                        atomicity: "TRANSACTION"
+                    },
+                    io,
                     { session }
                 );
             });
@@ -734,18 +734,19 @@ const assignDevice = async (req, res) => {
             }
 
             try {
-                await ActivityLog.create({
-                    action: AUDIT_ACTIONS.DEVICE_ASSIGNED,
-                    actorRole: ACTOR_ROLES.SUPER_ADMIN,
-                    actorId: req.user.username || req.user.userId || "SUPER_ADMIN",
-                    targetType: TARGET_TYPES.DEVICE,
-                    targetId: cleanDeviceId,
-                    details: {
+                const io = req.app && req.app.get ? req.app.get("io") : null;
+                await logActivity(
+                    AUDIT_ACTIONS.DEVICE_ASSIGNED,
+                    ACTOR_ROLES.SUPER_ADMIN,
+                    req.user.username || req.user.userId || "SUPER_ADMIN",
+                    TARGET_TYPES.DEVICE,
+                    cleanDeviceId,
+                    {
                         patientId: cleanPatientId,
                         atomicity: "COORDINATED_COMPENSATION"
                     },
-                    timestamp: new Date()
-                });
+                    io
+                );
             } catch (auditErr) {
                 console.warn("Assignment audit log warning:", auditErr.message);
             }

@@ -9,7 +9,7 @@ const Patient = require("../models/Patient");
 const Device = require("../models/Device");
 const SensorReading = require("../models/SensorReading");
 const ActivityLog = require("../models/ActivityLog");
-const { ROLES, ACCOUNT_STATUS, DEVICE_STATUS } = require("../config/constants");
+const { ROLES, ACCOUNT_STATUS, DEVICE_STATUS, AUDIT_ACTIONS, ACTOR_ROLES, TARGET_TYPES } = require("../config/constants");
 const { COOKIE_NAME, getCookieOptions } = require("../config/auth");
 const { isApiRequest } = require("../middleware/authMiddleware");
 
@@ -166,24 +166,135 @@ const getDevices = async (req, res) => {
 };
 
 /**
- * Super Admin Activity Stream Foundation
- * GET /admin/activity
+ * Super Admin Activity Stream & Paginated Audit API
+ * GET /admin/activity or GET /api/admin/activity
+ * Supports query params: page, limit, action, actorId, actorRole, targetType, targetId, startDate, endDate
  */
 const getActivity = async (req, res) => {
     try {
-        const activities = await ActivityLog.find()
+        const {
+            page = 1,
+            limit = 50,
+            action,
+            actorId,
+            actorRole,
+            targetType,
+            targetId,
+            startDate,
+            endDate
+        } = req.query;
+
+        // 1. Pagination Validation & Sanitization
+        let parsedPage = parseInt(page, 10);
+        if (isNaN(parsedPage) || parsedPage < 1) {
+            parsedPage = 1;
+        }
+
+        let parsedLimit = parseInt(limit, 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+            parsedLimit = 50;
+        }
+        // Enforce max limit of 100
+        if (parsedLimit > 100) {
+            parsedLimit = 100;
+        }
+
+        // 2. Build Filter
+        const filter = {};
+
+        if (action && typeof action === "string" && action.trim()) {
+            filter.action = action.trim().toUpperCase();
+        }
+
+        if (actorId && typeof actorId === "string" && actorId.trim()) {
+            filter.actorId = actorId.trim();
+        }
+
+        if (actorRole && typeof actorRole === "string" && actorRole.trim()) {
+            filter.actorRole = actorRole.trim().toUpperCase();
+        }
+
+        if (targetType && typeof targetType === "string" && targetType.trim()) {
+            filter.targetType = targetType.trim().toUpperCase();
+        }
+
+        if (targetId && typeof targetId === "string" && targetId.trim()) {
+            filter.targetId = targetId.trim();
+        }
+
+        // Optional date range filtering
+        if (startDate || endDate) {
+            filter.timestamp = {};
+            if (startDate) {
+                const sDate = new Date(startDate);
+                if (!isNaN(sDate.getTime())) {
+                    filter.timestamp.$gte = sDate;
+                }
+            }
+            if (endDate) {
+                const eDate = new Date(endDate);
+                if (!isNaN(eDate.getTime())) {
+                    filter.timestamp.$lte = eDate;
+                }
+            }
+            if (Object.keys(filter.timestamp).length === 0) {
+                delete filter.timestamp;
+            }
+        }
+
+        // 3. Database Execution
+        const total = await ActivityLog.countDocuments(filter);
+        const pages = Math.ceil(total / parsedLimit) || 1;
+        const skip = (parsedPage - 1) * parsedLimit;
+
+        const activities = await ActivityLog.find(filter)
             .sort({ timestamp: -1 })
-            .limit(50)
+            .skip(skip)
+            .limit(parsedLimit)
             .lean();
 
+        // Safe projection ensuring zero secret leakage
+        const safeActivities = activities.map((act) => ({
+            _id: act._id,
+            action: act.action,
+            actorRole: act.actorRole,
+            actorId: act.actorId,
+            targetType: act.targetType,
+            targetId: act.targetId,
+            details: act.details || {},
+            timestamp: act.timestamp
+        }));
+
         if (isApiRequest(req)) {
-            return res.status(200).json({ success: true, count: activities.length, activities });
+            return res.status(200).json({
+                success: true,
+                pagination: {
+                    page: parsedPage,
+                    limit: parsedLimit,
+                    total,
+                    pages
+                },
+                count: safeActivities.length,
+                activities: safeActivities
+            });
         }
 
         return res.render("admin/activity", {
             user: req.user,
             activePage: "activity",
-            activities
+            activities: safeActivities,
+            pagination: {
+                page: parsedPage,
+                limit: parsedLimit,
+                total,
+                pages
+            },
+            filters: {
+                action: action || "",
+                actorId: actorId || "",
+                actorRole: actorRole || ""
+            },
+            availableActions: Object.values(AUDIT_ACTIONS)
         });
     } catch (error) {
         console.error("Admin activity error:", error.message);
