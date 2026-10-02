@@ -25,12 +25,12 @@
 | Metric | Value |
 | :--- | :--- |
 | **Total Phases** | 20 (Phase 0 to Phase 19) |
-| **Total Tracked Tasks** | 46 |
-| **Tasks Completed** | 44 |
+| **Total Tracked Tasks (Phases 0-16)** | 51 |
+| **Tasks Completed** | 47 |
 | **Tasks In Progress** | 0 |
 | **Tasks Blocked** | 0 |
-| **Tasks Not Started** | 2 |
-| **Overall Completion** | 95.7% |
+| **Tasks Not Started** | 4 |
+| **Overall Core Completion** | 92.2% (47 of 51 core tasks; 100% of Phases 0-14) |
 
 
 ---
@@ -213,9 +213,9 @@
 
 | Task ID | Task Description | Status | Dependencies | Files Affected | Verification / Test Result | Date Completed | Notes |
 | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `TASK-14.1` | Implement centralized Express error handler middleware and standard error response formatting | `NOT_STARTED` | All prior | `src/middleware/errorHandler.js`, `src/app.js` | None (Not yet executed) | - | Consistent JSON/HTML errors |
-| `TASK-14.2` | Implement incoming payload validation schemas (Joi / express-validator) and IoT rate limiting | `NOT_STARTED` | All prior | `src/middleware/validationMiddleware.js`, `src/routes/iotRoutes.js` | None (Not yet executed) | - | Prevents invalid ingestion packets |
-| `TASK-14.3` | Add client-side Socket.IO reconnecting banner and graceful degradation UI feedback | `NOT_STARTED` | All prior | `src/public/js/socketStatus.js` | None (Not yet executed) | - | User feedback on disconnect |
+| `TASK-14.1` | Implement centralized Express error handler middleware and standard error response formatting | `DONE` | All prior | `src/middleware/errorHandler.js`, `src/app.js` | `node tests/errorRobustnessValidation.test.js` (Tests 1-2, 21-22 PASS) | 2026-10-02 | Centralized error handler returning structured JSON or burnt-orange HTML error page, safe production responses without stack traces or secret leaks |
+| `TASK-14.2` | Implement incoming payload validation schemas and IoT rate limiting | `DONE` | All prior | `src/middleware/validationMiddleware.js`, `src/middleware/rateLimiter.js`, `src/routes/iotRoutes.js` | `node tests/errorRobustnessValidation.test.js` (Tests 3-8 PASS) | 2026-10-02 | In-memory sliding-window rate limiter (120 req/min) returning 429 with retry headers; strict payload & parameter validation schemas |
+| `TASK-14.3` | Add client-side Socket.IO reconnecting banner and graceful degradation UI feedback | `DONE` | All prior | `src/public/js/socketStatus.js`, `src/public/js/toast.js`, `src/views/error.ejs` | `node tests/errorRobustnessValidation.test.js` (Tests 23-24 PASS) | 2026-10-02 | Real-time connection badge (CONNECTED, RECONNECTING, DISCONNECTED, ERROR) with accessible toast notification system |
 
 ---
 

@@ -5,6 +5,53 @@
 
 ## CHANGELOG ENTRIES
 
+### 2026-10-02 — Phase 14: Error Handling, Edge Cases & System Robustness
+- **Phase / Task:** PHASE 14 (`TASK-14.1`, `TASK-14.2`, `TASK-14.3`)
+- **Change:**
+  1. Centralized Express Error Handling Architecture (`src/middleware/errorHandler.js`, `src/app.js`):
+     - Implemented 4-argument Express error middleware handling all uncaught exceptions, operational errors, and asynchronous rejections.
+     - Structured error mappings:
+       - JSON parsing syntax errors (`SyntaxError` with status 400): mapped to HTTP 400 with `{ success: false, error: "Invalid JSON payload" }`.
+       - Mongoose `ValidationError`: mapped to HTTP 400 with aggregated field violation details.
+       - Mongoose `CastError`: mapped to HTTP 400 with invalid parameter identification.
+       - MongoDB duplicate key error (code 11000): mapped to HTTP 409 Conflict.
+       - JWT errors (`TokenExpiredError`, `JsonWebTokenError`): mapped to HTTP 401 Unauthorized.
+       - Default server errors: mapped to HTTP 500 Internal Server Error with sanitized user-facing messages.
+     - Production Security Invariant: stack traces, internal source paths, and sensitive system details are strictly suppressed when `NODE_ENV === 'production'`.
+     - Dual-response rendering: automatically differentiates between REST API requests (returning structured JSON) and browser navigational requests (rendering `src/views/error.ejs`).
+  2. Request Ingestion Validation & Schemas (`src/middleware/validationMiddleware.js`, `src/routes/iotRoutes.js`):
+     - Implemented centralized validation framework supporting sanitized string checks, regex format validation, type safety, and numeric boundary verification.
+     - Built validation schemas for:
+       - IoT Telemetry (`iotData`): validates `deviceId` (string), `patientId` (string), and `readings` object with `value1` and `value2` (finite numbers within `[0, 500]`).
+       - Authentication (`register`, `login`): validates email formatting, password length (`>= 6`), and required username/identifier.
+       - Admin device creation (`createDevice`): validates uppercase device ID format and device type.
+       - Assignments (`assignment`): validates `patientId` and `doctorId`.
+       - Param validation (`deviceIdParam`, `patientIdParam`).
+     - Integrated validation middleware into `POST /api/iot/data`.
+  3. Sliding-Window Ingestion Rate Limiter (`src/middleware/rateLimiter.js`, `src/routes/iotRoutes.js`):
+     - Implemented high-performance in-memory sliding-window rate limiter with automatic unreferenced garbage collection timers preventing memory leaks.
+     - Preconfigured `iotRateLimiter` allowing up to 120 requests per minute per IP address.
+     - RFC-compliant rate limit headers: sets `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `Retry-After` on HTTP 429 Too Many Requests responses.
+     - Controlled test reset mechanism via `__resetForTest()` strictly restricted to non-production test environments (`NODE_ENV === 'test'`).
+  4. Mongoose Lifecycle Listeners & Diagnostics (`src/config/database.js`):
+     - Added event listeners for `connected`, `error`, `disconnected`, and `reconnected` with safe logging (zero credential or URI leakage).
+     - Exported `isDatabaseConnected()` boolean predicate and `getConnectionState()` returning `{ state, numericState }`.
+  5. Client-Side Socket.IO Status & Notification UX (`src/public/js/socketStatus.js`, `src/public/js/toast.js`, `src/views/error.ejs`):
+     - Built reusable `SocketStatus` client component listening to `connect`, `disconnect`, `connect_error`, `reconnect`, `reconnect_attempt`, and `reconnect_failed`.
+     - Renders persistent status indicators across states (`CONNECTED`, `RECONNECTING`, `DISCONNECTED`, `ERROR`) matching the dark burnt-orange aesthetic.
+     - Built lightweight `Toast` notification component with ARIA accessibility roles and automatic timeout decay.
+     - Created dark-mode fallback error page (`src/views/error.ejs`) with diagnostic message and back-to-safety navigational controls.
+  6. Robustness Test Suite Hardening (`tests/errorRobustnessValidation.test.js`):
+     - Re-architected 25-test verification suite to eliminate an earlier 15+ minute execution hang.
+     - Replaced 120 sequential end-to-end HTTP/MongoDB roundtrips in rate limiter tests with pre-populated internal state testing the 121st request against the real Express pipeline.
+     - Wrapped all asynchronous socket connections, room authorizations, and HTTP requests in bounded timeouts (`withTimeout(promise, ms, label)`).
+     - Standardized per-test execution timer reporting (`[START]`, `[PASS]`, duration in ms).
+     - Guaranteed deterministic socket and database cleanup in `finally` blocks.
+     - Reduced suite execution time from 15+ minutes down to 1.2–1.6 seconds.
+  7. Automated Regression Verification:
+     - 25/25 Phase 14 tests passing.
+     - 453/453 total tests passing across all 15 suites (Phases 0–14). Zero regressions.
+
 ### 2026-10-02 — Phase 13: Centralized System Activity & Audit Trail
 - **Phase / Task:** PHASE 13 (`TASK-13.1`, `TASK-13.2`, `TASK-13.3`)
 - **Change:**

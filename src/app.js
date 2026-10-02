@@ -66,4 +66,29 @@ app.use("/doctor", doctorRoutes);
 // Legacy dashboard & API routes (Phase 3-8 compatibility)
 app.use("/", dashboardRoutes);
 
+// ==========================================
+// CENTRALIZED ERROR HANDLING (Phase 14)
+// ==========================================
+
+const { errorHandler } = require("./middleware/errorHandler");
+
+// 404 Handler for unmapped routes
+app.use((req, res, next) => {
+    const isApi = req.originalUrl && (req.originalUrl.startsWith("/api/") || (req.headers && req.headers.accept && req.headers.accept.includes("application/json")));
+    if (isApi) {
+        return res.status(404).json({
+            success: false,
+            message: `Route not found: ${req.method} ${req.originalUrl}`
+        });
+    }
+    return res.status(404).render("error", {
+        statusCode: 404,
+        message: "The requested page could not be found.",
+        user: req.user || null
+    });
+});
+
+// Centralized Express Error Handler
+app.use(errorHandler);
+
 module.exports = app;

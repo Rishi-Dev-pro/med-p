@@ -4,10 +4,11 @@ const Device = require("../models/Device");
 const Patient = require("../models/Patient");
 const Doctor = require("../models/Doctor");
 const SensorReading = require("../models/SensorReading");
+const { iotRateLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
-router.post("/data", async (req, res) => {
+router.post("/data", iotRateLimiter, async (req, res, next) => {
     const { deviceId, value1, value2, timestamp } = req.body;
 
     // ==========================================

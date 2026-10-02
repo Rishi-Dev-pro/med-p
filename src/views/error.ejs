@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error <%= typeof statusCode !== 'undefined' ? statusCode : 500 %> — Health Tracker</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card" style="text-align: center;">
+            <header class="auth-header">
+                <span class="auth-badge" style="background: rgba(224, 90, 71, 0.15); color: #E05A47; border-color: rgba(224, 90, 71, 0.3);">
+                    SYSTEM NOTICE
+                </span>
+                <h1 class="auth-title" style="color: #E05A47; margin-top: 12px;">
+                    <%= typeof statusCode !== 'undefined' ? statusCode : 500 %>
+                </h1>
+                <p class="auth-subtitle" style="margin-top: 8px;">
+                    <%= typeof message !== 'undefined' ? message : "An unexpected error occurred." %>
+                </p>
+            </header>
+
+            <div style="margin-top: 24px;">
+                <a href="/" class="btn-primary" style="display: inline-block; padding: 10px 24px; text-decoration: none; border-radius: 6px;">
+                    Return to Portal
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
